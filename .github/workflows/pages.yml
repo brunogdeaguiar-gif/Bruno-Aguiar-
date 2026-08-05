@@ -1,0 +1,47 @@
+## Publica o sistema na internet automaticamente.
+##
+## Toda vez que algo for alterado na branch "main", este processo roda sozinho
+## e atualiza o site. Não é preciso fazer nada manualmente.
+##
+## O passo "configure-pages" com "enablement: true" liga o GitHub Pages sozinho,
+## dispensando a configuração manual em Settings → Pages.
+
+name: Publicar site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:      # permite disparar na mão pela aba "Actions"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Baixar os arquivos do repositório
+        uses: actions/checkout@v4
+
+      - name: Ligar e configurar o GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Empacotar o site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Publicar
+        id: deploy
+        uses: actions/deploy-pages@v4
