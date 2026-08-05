@@ -165,7 +165,52 @@ de `','` para `'.'`.
 
 ---
 
-## 4. Limitações conhecidas (não são bugs)
+## 4. Importação no TOTVS (GERFP096)
+
+O CSV segue o documento *Layout para Importação de Produto*: **31 colunas**, separadas
+por `;`, primeira linha de cabeçalho (o TOTVS a ignora), sem `;` dentro de nenhum campo.
+
+### Cores — a causa da primeira falha de importação
+
+`CD_COR` exige o **código** cadastrado no PRDFL025, não o nome da cor. O sistema por isso
+não deixa mais digitar a cor livremente: escolhe-se numa lista de cores reais e o CSV leva
+o código, enquanto a tela e o PDF do fornecedor mostram o nome.
+
+A lista embutida foi extraída do relatório PRDR075 em PDF e tem **2.359 cores**. Desse
+total, **350 estão marcadas com ⚠**: o relatório corta a coluna *Codigo* em 8 caracteres,
+então códigos longos aparecem incompletos (`VERDMUS(` em vez do código real de VERDE MUSGO).
+
+**Recomendação:** exporte o PRDFL025 em CSV/Excel direto do TOTVS e carregue em
+*Pedido → Atualizar lista de cores* (1ª coluna código, 2ª descrição). Isso elimina o
+truncamento, e a lista passa a se manter atualizada sem depender de alteração no sistema.
+
+### Valores fixos que precisam existir no seu TOTVS
+
+Ficam na constante `CFG`, no topo do `<script>`:
+
+| Campo | Valor | Componente onde precisa existir |
+|---|---|---|
+| `CD_MASCARA` | `1` | PRDFM018 |
+| `CD_ESPECIE` | `PC` | PRDFL005 |
+| `CD_CST` | `2` | — |
+| `CD_EMPVALOR1` | `999` | empresa |
+| `TP_VALOR1` / `CD_VALOR1` | `P` / `1` | PRDFL003 |
+| `CD_GRADE` | por grade (8, 9, 22, 1, 12, 33, 36, 118, 97) | PRDFM008 |
+| `CD_NCM` | digitado por produto | FISFL008 |
+| `TP_ITEMSPED` | vazio (opcional) | — `00` = mercadoria para revenda |
+| `CD_CAMPOADIC1` | vazio | PRDFL107 — se preenchido, leva a ref. do fornecedor em `DS_CAMPOADIC1` |
+
+### Separador decimal
+
+O layout não diz se `VL_PRODUTO1` usa vírgula ou ponto. Há um seletor em
+*Pedido → Importação no TOTVS*; se o TOTVS recusar o valor, troque e gere de novo.
+
+### O que o CSV não cobre
+
+O GERFP096 é layout de **cadastro de produto**. As quantidades por loja não entram nele —
+ficam no PDF do fornecedor e no backup `.json`.
+
+## 5. Limitações conhecidas (não são bugs)
 
 - **Um pedido por navegador.** Não há histórico de pedidos nem acesso simultâneo de
   duas pessoas ao mesmo pedido. Se isso virar necessidade, o próximo passo é um
