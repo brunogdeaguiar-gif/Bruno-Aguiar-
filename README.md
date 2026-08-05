@@ -11,35 +11,26 @@ Não há back-end. Tudo roda no navegador e os dados ficam **no aparelho de quem
 
 ---
 
-## 1. Como compartilhar com o time
+## 1. O sistema já está no ar
 
-### Opção recomendada: GitHub Pages (link único, sempre atualizado)
+**Link para compartilhar com o time:**
 
-1. Faça o merge desta branch na `main` do repositório.
-2. No GitHub, abra **Settings → Pages**.
-3. Em *Build and deployment* → *Source*, escolha **Deploy from a branch**.
-4. Selecione a branch **`main`** e a pasta **`/ (root)`**. Clique em **Save**.
-5. Aguarde ~1 minuto e o link aparece no topo da própria tela de Pages:
-   `https://brunogdeaguiar-gif.github.io/bruno-aguiar-/`
-6. Mande esse link para o time. Toda vez que você fizer commit na `main`,
-   todos passam a usar a versão nova automaticamente (basta recarregar a página).
+### https://brunogdeaguiar-gif.github.io/Bruno-Aguiar-/
 
-> **Atenção — repositório privado:** o GitHub Pages só publica repositório privado
-> em planos pagos (Pro/Team/Enterprise). Se o repositório for público, o código e a
-> lista de lojas/códigos ficam visíveis na internet. Se isso for um problema, use a
-> Netlify (abaixo), que hospeda de graça sem expor o código-fonte.
+**A publicação é automática.** O workflow `.github/workflows/pages.yml` republica o
+site sozinho a cada alteração na branch `main` — em cerca de 1 minuto o link já
+mostra a versão nova, e todos passam a usá-la ao recarregar a página. Não é preciso
+mexer em **Settings → Pages**: o próprio workflow liga e configura o Pages
+(`actions/configure-pages` com `enablement: true`).
 
-### Alternativa: Netlify Drop (30 segundos, sem conta obrigatória)
+Para publicar manualmente sem alterar nada, use a aba **Actions** → *Publicar site* →
+**Run workflow**.
 
-1. Acesse <https://app.netlify.com/drop>.
-2. Arraste o arquivo `index.html` para a página.
-3. Copie o link gerado e compartilhe. Para atualizar, arraste o arquivo novo.
-
-### Alternativa: mandar o arquivo direto (WhatsApp / e-mail / Drive)
-
-Funciona — é um arquivo só —, mas tem duas desvantagens: cada pessoa fica com uma
-**cópia congelada** (você não consegue atualizar depois) e, no celular, abrir um HTML
-recebido pelo WhatsApp é trabalhoso. Prefira o link.
+> O repositório é público — necessário para o GitHub Pages gratuito. Isso significa
+> que o código, a lista de lojas e os códigos de classificação ficam visíveis na
+> internet. Se um dia isso precisar mudar, as alternativas são um plano pago do
+> GitHub ou hospedar em outro serviço (a Netlify hospeda de graça sem expor o
+> código-fonte).
 
 ### Recomende ao time (importante)
 
@@ -67,6 +58,8 @@ Tudo que muda com frequência está no topo do `<script>`, em constantes:
 | `SEGMENTOS`, `SECOES`, `ESPECIES` | classificação em cascata |
 | `DEPARTAMENTOS`, `MARCAS`, `ESTACOES` | opções dos selects (montados por JS, sem duplicação no HTML) |
 | `LOJAS` | código e nome das lojas da distribuição |
+
+Depois de alterar o `index.html` e enviar para a `main`, o site se atualiza sozinho.
 
 Para incluir uma loja nova, basta acrescentar uma linha em `LOJAS` — a tela, os
 totais, o PDF e o backup se ajustam sozinhos.
