@@ -480,7 +480,13 @@ const CFG = {
   cdEmpValor:  '999',  // CD_EMPVALOR1 — empresa
   tpValor:     'P',    // TP_VALOR1    — tipo do valor no PRDFL003
   cdValor:     '1',    // CD_VALOR1    — código do valor no PRDFL003
-  tpItemSped:  '',     // TP_ITEMSPED  — opcional. '00' = mercadoria para revenda
+  /* TP_ITEMSPED existe no manual do layout, mas NÃO existe na versão do TOTVS
+     instalada aqui: enviá-lo derruba a importação com
+     "ORA-00904: TP_ITEMSPED: identificador inválido" (o importador monta o SQL
+     a partir dos nomes do cabeçalho). Mantenha false até o TOTVS ser atualizado
+     e o campo aparecer em "Exportar layout" dentro do GERFP096. */
+  usarTpItemSped: false,
+  tpItemSped:  '',     // valor quando usarTpItemSped = true ('00' = revenda)
   cdCampoAdic: '',     // CD_CAMPOADIC1 — se preenchido (PRDFL107), leva a ref. do
                        //                 fornecedor em DS_CAMPOADIC1
 };
@@ -3817,6 +3823,9 @@ function renderLista(){
     if (!p.ncm || p.ncm.length !== 8) alertas.push('NCM');
     if (p.pVenda == null) alertas.push('P.Venda');
     if (!GRADES[p.tipoGrade].cdGrade) alertas.push('cód. grade');
+    const usadas = p.grade.filter(r => p.tamanhos.some(t => r.tam[t] > 0));
+    if (usadas.some(r => !r.corCod)) alertas.push('código de cor');
+    else if (usadas.some(r => acharCor(r.corCod)?.dub ?? true)) alertas.push('cor a conferir');
     return `
     <div class="produto-card${p.id === editandoId ? ' editando' : ''}">
       ${p.foto
@@ -3886,16 +3895,19 @@ function exportarCSV(){
   if (c6) alertas.push(`• ${c6} produto(s) com grade zerada — não geram nenhuma linha no CSV`);
   if (alertas.length && !confirm('Atenção — verifique antes de importar:\n\n' + alertas.join('\n') + '\n\nExportar mesmo assim?')) return;
 
-  // 31 campos, exatamente na ordem do layout oficial "Layout para Importação de Produto".
+  /* Ordem do layout "Layout para Importação de Produto".
+     TP_ITEMSPED só entra se CFG.usarTpItemSped — ver a nota no CFG: o TOTVS
+     instalado aqui não tem esse campo e recusa o arquivo inteiro com ele. */
   const header = [
-    'CD_MASCARA','CD_GRUPO1','DS_GRUPO1','CD_PRODUTO','DS_PRODUTO',          //  1-5
-    'CD_NCM','CD_ESPECIE','CD_CST','QT_PESO','CD_GRADE',                     //  6-10
-    'CD_COR','DS_TAMANHO','IN_PRODPROPRIA','IN_PRODACABADO','IN_MATPRIMA',   // 11-15
-    'IN_MATCONSUMO','IN_PRODTERCEIRO','TP_ITEMSPED',                         // 16-18
-    'CD_EMPVALOR1','TP_VALOR1','CD_VALOR1','VL_PRODUTO1',                    // 19-22
-    'CD_BARRA','IN_CADASTRARCLAS','CD_TIPOCLAS1','CD_CLASSIFICACAO1',        // 23-26
-    'NR_CNPJFORNECEDOR','CD_ANTERIOR','CD_COMPOSICAO',                       // 27-29
-    'CD_CAMPOADIC1','DS_CAMPOADIC1',                                         // 30-31
+    'CD_MASCARA','CD_GRUPO1','DS_GRUPO1','CD_PRODUTO','DS_PRODUTO',
+    'CD_NCM','CD_ESPECIE','CD_CST','QT_PESO','CD_GRADE',
+    'CD_COR','DS_TAMANHO','IN_PRODPROPRIA','IN_PRODACABADO','IN_MATPRIMA',
+    'IN_MATCONSUMO','IN_PRODTERCEIRO',
+    ...(CFG.usarTpItemSped ? ['TP_ITEMSPED'] : []),
+    'CD_EMPVALOR1','TP_VALOR1','CD_VALOR1','VL_PRODUTO1',
+    'CD_BARRA','IN_CADASTRARCLAS','CD_TIPOCLAS1','CD_CLASSIFICACAO1',
+    'NR_CNPJFORNECEDOR','CD_ANTERIOR','CD_COMPOSICAO',
+    'CD_CAMPOADIC1','DS_CAMPOADIC1',
   ];
   const linhas = [header];
 
@@ -3928,7 +3940,7 @@ function exportarCSV(){
           'F',                        // 15 IN_MATPRIMA
           'F',                        // 16 IN_MATCONSUMO
           'F',                        // 17 IN_PRODTERCEIRO
-          CFG.tpItemSped,             // 18 TP_ITEMSPED       opcional (00 = revenda)
+          ...(CFG.usarTpItemSped ? [CFG.tpItemSped] : []),   // TP_ITEMSPED (ver CFG)
           CFG.cdEmpValor,             // 19 CD_EMPVALOR1
           CFG.tpValor,                // 20 TP_VALOR1
           CFG.cdValor,                // 21 CD_VALOR1         PRDFL003

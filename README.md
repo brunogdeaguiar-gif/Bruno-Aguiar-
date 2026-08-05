@@ -167,8 +167,17 @@ de `','` para `'.'`.
 
 ## 4. Importação no TOTVS (GERFP096)
 
-O CSV segue o documento *Layout para Importação de Produto*: **31 colunas**, separadas
-por `;`, primeira linha de cabeçalho (o TOTVS a ignora), sem `;` dentro de nenhum campo.
+O CSV segue o documento *Layout para Importação de Produto*, separado por `;`, com uma
+primeira linha de cabeçalho e sem `;` dentro de nenhum campo.
+
+> **Atenção — o manual está à frente da versão instalada.** O documento descreve 31 campos,
+> incluindo `TP_ITEMSPED` na 18ª posição. A versão do TOTVS em uso **não tem esse campo**:
+> enviá-lo derruba o arquivo inteiro com
+> `ORA-00904: "TP_ITEMSPED": identificador inválido` — o importador monta o SQL a partir dos
+> nomes do cabeçalho, então um nome desconhecido invalida todas as linhas.
+> Por isso o arquivo sai com **30 colunas**, sem `TP_ITEMSPED`.
+> Quando o TOTVS for atualizado e o campo aparecer no botão **Exportar layout** do GERFP096,
+> basta trocar `CFG.usarTpItemSped` para `true`.
 
 ### Cores — a causa da primeira falha de importação
 
