@@ -214,6 +214,22 @@ Ficam na constante `CFG`, no topo do `<script>`:
 O layout não diz se `VL_PRODUTO1` usa vírgula ou ponto. Há um seletor em
 *Pedido → Importação no TOTVS*; se o TOTVS recusar o valor, troque e gere de novo.
 
+### Fornecedor
+
+`NR_CNPJFORNECEDOR` vincula o produto ao fornecedor (visível no PRDFM310). O CNPJ é
+digitado em *Dados do pedido*, validado pelos dígitos verificadores e enviado só com
+os números. O fornecedor precisa já existir como pessoa no TOTVS com esse mesmo CNPJ.
+
+### Ainda não implementado
+
+Apurado conferindo um produto importado no TOTVS — o cadastro entra, mas incompleto:
+
+| Falta | Campos do layout | O que falta descobrir |
+|---|---|---|
+| Os 6 níveis do grupo (SEGMENTO · SECAO · ESPECIE · DEPARTAMENTO · DESCRICAO · REFERENCIA) | `CD_GRUPO1..6` / `DS_GRUPO1..6` | hoje vai só o código da espécie em `CD_GRUPO1`; faltam os códigos que o TOTVS espera nos níveis Departamento, Descrição e Referência |
+| Custo (ULTIMA COMPRA e CUSTO NEGOCIADO no PRDFL003) | `CD_EMPVALOR2..`, `TP_VALOR2..`, `CD_VALOR2..`, `VL_PRODUTO2..` | para quais códigos vai o P. Compra |
+| Classificações (PRDFM308: tipos 100 SEGMENTO, 101 SECAO, 102 ESPECIE, 103 DEPARTAMENTO, 105 MARCA, 106 ESTACAO) | `IN_CADASTRARCLAS`, `CD_TIPOCLAS1..`, `CD_CLASSIFICACAO1..` | os códigos de classificação do PRDFL012 para cada marca, estação, departamento etc. |
+
 ### O que o CSV não cobre
 
 O GERFP096 é layout de **cadastro de produto**. As quantidades por loja não entram nele —

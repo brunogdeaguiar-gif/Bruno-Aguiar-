@@ -233,6 +233,12 @@ body{font-family:var(--fonte);background:#F0F2F5;min-height:100vh;color:#111827}
           <label for="ped-fornecedor">Fornecedor <span class="obrig">*obrigatório</span></label>
           <input type="text" id="ped-fornecedor" class="campo-obrig" placeholder="Nome do fornecedor" autocomplete="organization">
         </div>
+        <div class="field">
+          <label for="ped-cnpj">CNPJ do fornecedor <span class="obrig">*vai para o TOTVS</span></label>
+          <input type="text" id="ped-cnpj" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00">
+          <div class="erro-msg" id="erro-cnpj">CNPJ inválido — confira os números.</div>
+          <div class="hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg> O fornecedor precisa estar cadastrado como pessoa no TOTVS com este mesmo CNPJ.</div>
+        </div>
         <div class="row2">
           <div class="field"><label for="ped-frete">Frete</label>
             <select id="ped-frete"><option value="">Selecione</option><option>CIF</option><option>FOB</option></select>
@@ -3028,7 +3034,7 @@ function converterExportTotvs(texto){
 
 /* ===================== ESTADO ===================== */
 const state = {
-  pedido: {dtIni:'', dtFim:'', prazo:'', comissao:'', fornecedor:'', frete:'', materiaPrima:''},
+  pedido: {dtIni:'', dtFim:'', prazo:'', comissao:'', fornecedor:'', cnpj:'', frete:'', materiaPrima:''},
   produtos: [],
   seq: 1,
 };
@@ -3559,15 +3565,45 @@ function aplicarPacksTodas(){
 /* ---- pedido (cabeçalho) ---- */
 const CAMPOS_PEDIDO = {
   'ped-dt-ini':'dtIni', 'ped-dt-fim':'dtFim', 'ped-prazo':'prazo', 'ped-comissao':'comissao',
-  'ped-fornecedor':'fornecedor', 'ped-frete':'frete', 'ped-materia':'materiaPrima',
+  'ped-fornecedor':'fornecedor', 'ped-cnpj':'cnpj', 'ped-frete':'frete', 'ped-materia':'materiaPrima',
 };
 function aplicarPedidoNoForm(){
   Object.entries(CAMPOS_PEDIDO).forEach(([id, chave]) => { $(id).value = state.pedido[chave] || ''; });
-  validarDatas();
+  $('ped-cnpj').value = fmtCnpj(state.pedido.cnpj) || state.pedido.cnpj || '';
+  validarDatas(); validarCnpj();
 }
 function lerPedidoDoForm(){
   Object.entries(CAMPOS_PEDIDO).forEach(([id, chave]) => { state.pedido[chave] = $(id).value; });
 }
+/** Só os dígitos do CNPJ, como o layout exige (NR_CNPJFORNECEDOR: numérico, 14). */
+function cnpjDigitos(v){ return String(v || '').replace(/\D/g, '').substring(0, 14); }
+function fmtCnpj(v){
+  const d = cnpjDigitos(v);
+  if (d.length !== 14) return d;
+  return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
+}
+/** Confere os dois dígitos verificadores — pega erro de digitação antes do TOTVS. */
+function cnpjValido(v){
+  const d = cnpjDigitos(v);
+  if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
+  const dv = (base) => {
+    let peso = base.length - 7, soma = 0;
+    for (let i = 0; i < base.length; i++) {
+      soma += Number(base[i]) * peso--;
+      if (peso < 2) peso = 9;
+    }
+    const r = soma % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  return dv(d.slice(0,12)) === Number(d[12]) && dv(d.slice(0,13)) === Number(d[13]);
+}
+function validarCnpj(){
+  const d = cnpjDigitos($('ped-cnpj').value);
+  const ok = d === '' || cnpjValido(d);
+  $('erro-cnpj').classList.toggle('on', !ok);
+  return ok;
+}
+
 function validarDatas(){
   const {dtIni, dtFim} = state.pedido;
   const ruim = !!(dtIni && dtFim && dtFim < dtIni);
@@ -3628,6 +3664,7 @@ function salvarProduto(){
   if (!state.pedido.fornecedor.trim()) bloqueios.push('• Informe o fornecedor (seção 1).');
   if (!$('segmento').value) bloqueios.push('• Selecione o segmento (seção 2).');
   if (!validarDatas()) bloqueios.push('• A data final de faturamento é anterior à inicial.');
+  if (!validarCnpj()) bloqueios.push('• O CNPJ do fornecedor está inválido.');
   if (bloqueios.length) { alert('Não foi possível salvar:\n\n' + bloqueios.join('\n')); return; }
 
   const pp = gradeForm.total();
@@ -3891,6 +3928,8 @@ function exportarCSV(){
   if (c5) alertas.push(`• ${c5} produto(s) com cor SEM código do PRDFL025 — o TOTVS vai recusar essas linhas`);
   const c7 = conta(p => p.grade.some(r => r.corCod && (acharCor(r.corCod)?.dub ?? true) && p.tamanhos.some(t => r.tam[t] > 0)));
   if (c7) alertas.push(`• ${c7} produto(s) usam cor com código a confirmar no PRDFL025 (marcada com ⚠)`);
+  if (!cnpjDigitos(state.pedido.cnpj)) alertas.push('• CNPJ do fornecedor em branco — o produto entra sem fornecedor vinculado (PRDFM310)');
+  else if (!cnpjValido(state.pedido.cnpj)) alertas.push('• CNPJ do fornecedor inválido — confira os números');
   const c6 = conta(p => pecasPorPack(p) === 0);
   if (c6) alertas.push(`• ${c6} produto(s) com grade zerada — não geram nenhuma linha no CSV`);
   if (alertas.length && !confirm('Atenção — verifique antes de importar:\n\n' + alertas.join('\n') + '\n\nExportar mesmo assim?')) return;
@@ -3949,7 +3988,7 @@ function exportarCSV(){
           '',                         // 24 IN_CADASTRARCLAS
           '',                         // 25 CD_TIPOCLAS1
           '',                         // 26 CD_CLASSIFICACAO1
-          '',                         // 27 NR_CNPJFORNECEDOR
+          cnpjDigitos(state.pedido.cnpj), // 27 NR_CNPJFORNECEDOR  só dígitos
           '',                         // 28 CD_ANTERIOR       numérico — mantido vazio
           '',                         // 29 CD_COMPOSICAO
           CFG.cdCampoAdic,            // 30 CD_CAMPOADIC1     exige cadastro no PRDFL107
@@ -3990,7 +4029,8 @@ function exportarPDF(){
     doc.setTextColor(255,255,255); doc.setFontSize(14); doc.setFont(undefined,'bold');
     doc.text('LOJAS EMMANUELLE', MARG, 12);
     doc.setFontSize(9); doc.setFont(undefined,'normal');
-    doc.text('Pedido de Compras — Fornecedor: ' + fornecedor, MARG, 19);
+    doc.text('Pedido de Compras — Fornecedor: ' + fornecedor +
+             (state.pedido.cnpj ? '   CNPJ: ' + fmtCnpj(state.pedido.cnpj) : ''), MARG, 19);
     doc.text('Emissão: ' + emissao, 210, 12);
     doc.setFontSize(8);
     const fat = `Faturamento: ${fmtData(state.pedido.dtIni) || '-'} → ${fmtData(state.pedido.dtFim) || '-'}`;
@@ -4158,7 +4198,7 @@ function importarBackup(file){
     if (!dados || !Array.isArray(dados.produtos)) { alert('Arquivo inválido: não contém uma lista de produtos.'); return; }
     if (state.produtos.length && !confirm('Isto substitui o pedido atual (' + state.produtos.length + ' produtos). Continuar?')) return;
 
-    state.pedido = Object.assign({dtIni:'',dtFim:'',prazo:'',comissao:'',fornecedor:'',frete:'',materiaPrima:''}, dados.pedido || {});
+    state.pedido = Object.assign({dtIni:'',dtFim:'',prazo:'',comissao:'',fornecedor:'',cnpj:'',frete:'',materiaPrima:''}, dados.pedido || {});
     state.produtos = dados.produtos.map(normalizarProduto).filter(Boolean);
     state.seq = Math.max(Number(dados.seq) || 1, state.produtos.reduce((m,p) => Math.max(m, p.id), 0) + 1);
     editandoId = null;
@@ -4211,9 +4251,14 @@ function init(){
 
   // eventos do cabeçalho do pedido
   Object.keys(CAMPOS_PEDIDO).forEach(id => {
-    const aoAlterarPedido = () => { lerPedidoDoForm(); validarDatas(); persistirDados(); };
+    const aoAlterarPedido = () => { lerPedidoDoForm(); validarDatas(); validarCnpj(); persistirDados(); };
     $(id).addEventListener('input', aoAlterarPedido);
     $(id).addEventListener('change', aoAlterarPedido);
+  });
+
+  $('ped-cnpj').addEventListener('blur', () => {
+    $('ped-cnpj').value = fmtCnpj($('ped-cnpj').value) || $('ped-cnpj').value;
+    lerPedidoDoForm(); validarCnpj(); persistirDados();
   });
 
   // eventos do produto
