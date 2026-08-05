@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Cadastro de produtos e geração de pedido de compras — Lojas Emmanuelle.">
+<meta name="theme-color" content="#1F3864">
+<title>Cadastro de Produtos — Lojas Emmanuelle</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --azul:#1F3864; --azul2:#2F5496; --verde:#0F6E56; --verde2:#1D7A4A;
+  --vermelho:#C00000; --ambar:#92400E; --borda:#D1D5DB; --cinza:#6B7280;
+  --fonte:'DM Sans','Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--fonte);background:#F0F2F5;min-height:100vh;color:#111827}
+.app{max-width:480px;margin:0 auto;padding:0 0 3rem}
+
+/* ---------- ícones (SVG inline, sem CDN de fontes de ícone) ---------- */
+.ic{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;vertical-align:-.125em}
+
+/* ---------- cabeçalho / abas ---------- */
+.header{background:var(--azul);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.header h1{font-size:16px;font-weight:600;display:flex;align-items:center;gap:7px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.badge{background:rgba(255,255,255,.2);font-size:12px;padding:4px 12px;border-radius:20px;font-weight:500;white-space:nowrap}
+.nav-tabs{display:flex;background:#fff;border-bottom:1px solid #E0E4EA;position:sticky;top:var(--h-header,62px);z-index:99}
+.nav-tab{flex:1;text-align:center;padding:12px 4px;font-size:13px;cursor:pointer;color:var(--cinza);border-bottom:2px solid transparent;font-weight:500;background:none;border-top:0;border-left:0;border-right:0;font-family:var(--fonte)}
+.nav-tab[aria-selected="true"]{color:var(--azul);border-bottom-color:var(--azul)}
+
+/* ---------- blocos ---------- */
+.section{background:#fff;border-radius:12px;margin:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.section-title{background:var(--azul2);color:#fff;font-size:11px;font-weight:600;padding:8px 16px;letter-spacing:.8px;text-transform:uppercase}
+.fields{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.field label,.rotulo{font-size:11px;color:var(--cinza);display:block;margin-bottom:5px;font-weight:500}
+.field select,.field input[type=text],.field input[type=number],.field input[type=date],.field textarea{
+  width:100%;font-size:15px;padding:10px 12px;border:1px solid var(--borda);border-radius:8px;background:#F9FAFB;color:#111827;font-family:var(--fonte)}
+.field textarea{resize:vertical;min-height:64px;line-height:1.5}
+.field select:focus,.field input:focus,.field textarea:focus{outline:2px solid var(--azul2);outline-offset:-1px;background:#fff}
+.field input[readonly]{background:#F3F4F6;color:var(--cinza)}
+.obrig{color:#B91C1C;font-size:10px;font-weight:600}
+.campo-obrig{border-color:#FCA5A5 !important}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:11px;color:#9CA3AF;margin-top:4px;display:flex;align-items:center;gap:4px;line-height:1.4}
+.erro-msg{font-size:11px;color:#B91C1C;font-weight:600;margin-top:4px;display:none}
+.erro-msg.on{display:block}
+
+/* ---------- grade ---------- */
+.grade-tipo-select{width:100%;font-size:13px;padding:10px 12px;border:1.5px solid var(--azul2);border-radius:8px;background:#F0F4FC;color:var(--azul);font-weight:600;cursor:pointer;font-family:var(--fonte)}
+.grade-info-badge{background:#EBF3FB;border:1px solid #C7D2E8;border-radius:8px;padding:8px 12px;font-size:12px;color:var(--azul);font-weight:600;text-align:center;letter-spacing:.5px}
+.grade-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.grade-table{width:100%;border-collapse:collapse;min-width:280px}
+.grade-table th{background:var(--azul);color:#fff;padding:9px 3px;text-align:center;font-weight:600;font-size:11px}
+.grade-table th.th-total{background:var(--verde)}
+.grade-table td{padding:3px 2px;text-align:center;border:1px solid #E5E7EB}
+.grade-table td.cor-cell input{width:100%;min-width:64px;font-size:13px;border:1px solid transparent;background:#F3F4F6;color:#111827;padding:8px 4px;border-radius:5px;text-align:center;font-family:var(--fonte)}
+.grade-table td.tam-cell input{width:100%;min-width:34px;height:40px;text-align:center;font-size:14px;font-weight:700;border:1.5px solid var(--borda);background:#fff;color:#111827;padding:0;border-radius:5px;-moz-appearance:textfield;font-family:var(--fonte)}
+.grade-table input[type=number]::-webkit-inner-spin-button,.grade-table input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.grade-table input:focus{outline:2px solid var(--azul2);outline-offset:-1px}
+.grade-table .total-col{background:#F0F9F5;font-weight:700;color:var(--verde);font-size:13px}
+.btn-lixo{background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:6px;line-height:0}
+
+/* ---------- lojas ---------- */
+.lojas-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.loja-item{background:#F9FAFB;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:3px;border:1px solid #E5E7EB}
+.loja-cod{font-size:10px;color:#9CA3AF;font-weight:600}
+.loja-nome{font-size:12px;font-weight:600;color:var(--azul)}
+.loja-bottom{display:flex;align-items:center;gap:6px;justify-content:space-between;margin-top:2px}
+.loja-input{width:52px;text-align:center;font-size:15px;font-weight:600;border:1.5px solid var(--borda);border-radius:6px;padding:6px 2px;background:#fff;color:#111827;-moz-appearance:textfield;font-family:var(--fonte)}
+.loja-input::-webkit-inner-spin-button,.loja-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.loja-total-badge{font-size:11px;color:var(--verde);font-weight:600}
+.aplicar-todas{display:flex;gap:8px;align-items:center}
+.aplicar-todas input{width:70px;text-align:center;font-size:14px;padding:9px 4px;border:1px solid var(--borda);border-radius:8px;font-family:var(--fonte)}
+.aplicar-todas button{flex:1;background:#F0F4FC;border:1px solid #C7D2E8;color:var(--azul);border-radius:8px;padding:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fonte)}
+.totais{background:#F0F4FC;border-radius:10px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.total-item{text-align:center}
+.total-item .val{font-size:22px;font-weight:700;color:var(--azul)}
+.total-item .lbl{font-size:11px;color:var(--cinza);margin-top:2px}
+
+/* ---------- botões ---------- */
+.btn{width:100%;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--fonte);display:flex;align-items:center;justify-content:center;gap:8px;border:none}
+.btn+.btn,.btn+.btn-outline{margin-top:10px}
+.btn-primary{background:var(--azul);color:#fff}
+.btn-azul2{background:var(--azul2);color:#fff}
+.btn-csv{background:var(--verde2);color:#fff}
+.btn-pdf{background:var(--vermelho);color:#fff}
+.btn-ghost{background:#fff;color:var(--azul2);border:1.5px solid var(--azul2)}
+.btn-outline{width:100%;background:#fff;color:var(--cinza);border:1px solid var(--borda);border-radius:10px;padding:12px;font-size:14px;cursor:pointer;font-family:var(--fonte);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px}
+.btn-add-cor{width:100%;background:#fff;color:var(--azul2);border:1px dashed var(--azul2);border-radius:8px;padding:10px;font-size:13px;cursor:pointer;font-family:var(--fonte);display:flex;align-items:center;justify-content:center;gap:6px}
+.btn:disabled,.btn-outline:disabled{opacity:.5;cursor:not-allowed}
+
+/* ---------- lista ---------- */
+.produtos-lista{padding:12px 16px}
+.produto-card{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.produto-card.editando{border-color:var(--azul2);background:#F0F4FC}
+.produto-thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid #E5E7EB;flex-shrink:0;background:#F3F4F6}
+.produto-thumb-placeholder{width:52px;height:52px;border-radius:8px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:22px;flex-shrink:0}
+.produto-info{flex:1;min-width:0}
+.produto-info .nome{font-size:13px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.produto-info .detalhe{font-size:11px;color:var(--cinza);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.produto-pecas{font-size:18px;font-weight:700;color:var(--azul);white-space:nowrap}
+.card-acoes{display:flex;flex-direction:column;gap:4px}
+.btn-icone{background:#EBF3FB;border:none;color:var(--azul);border-radius:7px;padding:6px 8px;font-size:14px;cursor:pointer;line-height:0}
+.btn-icone.perigo{background:#FEF2F2;color:#B91C1C}
+.empty-state{text-align:center;padding:30px 20px;color:#9CA3AF;font-size:14px}
+.tag{display:inline-block;background:#EEF2FF;color:#3730A3;font-size:10px;padding:2px 8px;border-radius:20px;margin-right:4px;margin-top:4px;font-weight:500}
+.tag-grade{background:#FEF3C7;color:var(--ambar)}
+.tag-alerta{background:#FEE2E2;color:#B91C1C}
+
+/* ---------- diversos ---------- */
+.pecas-pack-display{background:#F0F4FC;border:1px solid #C7D2E8;border-radius:10px;padding:10px 14px;font-size:20px;font-weight:700;color:var(--azul);text-align:center}
+.aviso{border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;font-size:13px;font-weight:500;line-height:1.45}
+.aviso .ic{font-size:20px;margin-top:1px}
+.aviso-ok{background:#F0FDF4;border:1px solid #86EFAC;color:#15803D}
+.aviso-edit{background:#F0F4FC;border:1px solid #C7D2E8;color:var(--azul)}
+.aviso-alerta{background:#FFFBEB;border:1px solid #FCD34D;color:var(--ambar)}
+.actions-box{padding:0 12px 16px}
+.foto-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.btn-foto{background:#F9FAFB;border:1px solid var(--borda);border-radius:8px;padding:10px 4px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;color:#374151;font-family:var(--fonte);font-weight:500;flex-direction:column;line-height:1.3}
+.btn-foto .ic{font-size:18px}
+.foto-preview-wrap{position:relative;display:block}
+.foto-preview{width:100%;max-height:240px;object-fit:cover;border-radius:10px;display:block;background:#F3F4F6}
+.foto-remove{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.obs-field textarea{border-color:#F59E0B;background:#FFFBEB}
+.obs-field textarea:focus{border-color:#D97706;background:#fff}
+.obs-label{color:var(--ambar) !important}
+.resumo-pedido{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 16px 14px}
+.resumo-item{background:#F0F4FC;border-radius:8px;padding:8px;text-align:center}
+.resumo-item .v{font-size:16px;font-weight:700;color:var(--azul)}
+.resumo-item .l{font-size:10px;color:var(--cinza)}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);background:#111827;color:#fff;padding:11px 18px;border-radius:24px;font-size:13px;font-weight:500;z-index:900;opacity:0;transition:opacity .18s,transform .18s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:.96;transform:translateX(-50%) translateY(0)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media (max-width:360px){.foto-btns{grid-template-columns:1fr 1fr}.lojas-grid{grid-template-columns:1fr}}
+@media print{.nav-tabs,.actions-box,.header{display:none}}
+</style>
+</head>
+<body>
+
+<!-- ================= SPRITE DE ÍCONES (inline, sem dependência externa) ================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-shirt" viewBox="0 0 24 24"><path d="M8 3 4 6l2 3 2-1v12h8V8l2 1 2-3-4-3s-1 2-4 2-4-2-4-2Z"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><circle cx="12" cy="12" r="3.2"/></symbol>
+  <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M3 17l5-5 4 4 3-3 6 6"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M8 12l4 4 4-4M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5 11 15l4.5-5"/></symbol>
+  <symbol id="i-csv" viewBox="0 0 24 24"><path d="M4 3h10l5 5v5M14 3v5h5M4 3v18h7"/><path d="M14 18h6m-3-3 3 3-3 3"/></symbol>
+  <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M14 3v5h5"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8M20 4v4h-4"/><path d="M20 12a8 8 0 0 1-13.7 5.7L4 16M4 20v-4h4"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3ZM13.5 6.5l3 3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
+  <symbol id="i-notes" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 3 19h18L12 4Z"/><path d="M12 10v4M12 17h.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M6 4h9l4 4v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1ZM8 4v5h6V4M8 14h8v6H8Z"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="header" id="app-header">
+    <div>
+      <h1><svg class="ic" aria-hidden="true"><use href="#i-shirt"/></svg> Cadastro de Produtos</h1>
+      <div class="sub">Lojas Emmanuelle</div>
+    </div>
+    <div class="badge" id="contador-badge">0 produtos</div>
+  </header>
+
+  <div class="nav-tabs" role="tablist">
+    <button type="button" class="nav-tab" role="tab" aria-selected="true" id="tab-form" onclick="showTab('form')">Novo produto</button>
+    <button type="button" class="nav-tab" role="tab" aria-selected="false" id="tab-lista" onclick="showTab('lista')">Pedido (<span id="qtd-lista">0</span>)</button>
+  </div>
+
+  <!-- ======================= VIEW FORMULÁRIO ======================= -->
+  <div id="view-form" role="tabpanel" aria-labelledby="tab-form">
+
+    <div id="banner-edicao" style="display:none;padding:0 12px;margin-top:12px">
+      <div class="aviso aviso-edit">
+        <svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg>
+        <div style="flex:1">
+          <div id="banner-edicao-texto">Editando produto</div>
+          <button type="button" onclick="cancelarEdicao()" style="background:none;border:none;color:var(--azul2);font-weight:700;font-size:12px;cursor:pointer;padding:4px 0;font-family:var(--fonte);text-decoration:underline">Cancelar edição</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. DADOS DO PEDIDO -->
+    <section class="section">
+      <h2 class="section-title">1. Dados do pedido</h2>
+      <div class="fields">
+        <div class="hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg> Estes dados valem para o pedido inteiro (todos os produtos).</div>
+        <div class="row2">
+          <div class="field"><label for="ped-dt-ini">Data inicial fat.</label><input type="date" id="ped-dt-ini"></div>
+          <div class="field"><label for="ped-dt-fim">Data final fat.</label><input type="date" id="ped-dt-fim"></div>
+        </div>
+        <div class="erro-msg" id="erro-datas">A data final de faturamento é anterior à inicial.</div>
+        <div class="row2">
+          <div class="field"><label for="ped-prazo">Prazo pagamento (dias)</label><input type="number" id="ped-prazo" inputmode="numeric" min="0" placeholder="30"></div>
+          <div class="field"><label for="ped-comissao">Comissão fornec. (%)</label><input type="number" id="ped-comissao" inputmode="decimal" min="0" max="100" step="0.01" placeholder="0"></div>
+        </div>
+        <div class="field">
+          <label for="ped-fornecedor">Fornecedor <span class="obrig">*obrigatório</span></label>
+          <input type="text" id="ped-fornecedor" class="campo-obrig" placeholder="Nome do fornecedor" autocomplete="organization">
+        </div>
+        <div class="row2">
+          <div class="field"><label for="ped-frete">Frete</label>
+            <select id="ped-frete"><option value="">Selecione</option><option>CIF</option><option>FOB</option></select>
+          </div>
+          <div class="field"><label for="ped-materia">Matéria-Prima</label>
+            <select id="ped-materia"><option value="">Selecione</option><option>MALHA</option><option>TECIDO</option></select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CLASSIFICAÇÃO -->
+    <section class="section">
+      <h2 class="section-title">2. Classificação do produto</h2>
+      <div class="fields">
+        <div class="field"><label for="segmento">Segmento <span class="obrig">*obrigatório</span></label>
+          <select id="segmento" class="campo-obrig"></select>
+        </div>
+        <div class="field"><label for="secao">Seção</label><select id="secao"></select></div>
+        <div class="field"><label for="especie">Espécie</label><select id="especie"></select></div>
+        <div class="field"><label for="departamento">Departamento</label><select id="departamento"></select></div>
+        <div class="field">
+          <label for="descricao">Descrição específica <span class="obrig">*vai para o TOTVS</span></label>
+          <input type="text" id="descricao" maxlength="60" placeholder="Ex: com estampa floral, renda na barra...">
+          <div class="hint"><span id="cont-descricao">0</span>/60 caracteres — se vazio, o CSV usa o nome da espécie.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. DADOS DO PRODUTO -->
+    <section class="section">
+      <h2 class="section-title">3. Dados do produto</h2>
+      <div class="fields">
+        <div class="row2">
+          <div class="field"><label for="ref-forn">Ref. fornecedor</label><input type="text" id="ref-forn" maxlength="30" placeholder="Ex: 12345"></div>
+          <div class="field">
+            <label for="ncm">NCM <span class="obrig">*obrigatório TOTVS</span></label>
+            <input type="text" id="ncm" class="campo-obrig" inputmode="numeric" maxlength="8" placeholder="00000000">
+            <div class="erro-msg" id="erro-ncm">O NCM deve ter 8 dígitos.</div>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="marca">Marca</label><select id="marca"></select></div>
+          <div class="field"><label for="estacao">Estação</label><select id="estacao"></select></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="p-compra">P. Compra (R$)</label><input type="text" id="p-compra" inputmode="decimal" placeholder="0,00"></div>
+          <div class="field"><label for="p-venda">P. Venda (R$) <span class="obrig">*obrigatório TOTVS</span></label><input type="text" id="p-venda" class="campo-obrig" inputmode="decimal" placeholder="0,00"></div>
+        </div>
+        <div class="field"><label for="markup">Markup</label>
+          <input type="text" id="markup" readonly placeholder="Calculado automaticamente">
+        </div>
+        <div class="field obs-field">
+          <label for="observacao" class="obs-label"><svg class="ic" aria-hidden="true"><use href="#i-notes"/></svg> Observações do produto</label>
+          <textarea id="observacao" maxlength="400" placeholder="Ex: entrega parcelada, reposição em fev, pedido mínimo..."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. FOTO -->
+    <section class="section">
+      <h2 class="section-title">4. Foto do produto</h2>
+      <div class="fields">
+        <div id="foto-vazia">
+          <div class="foto-btns">
+            <button type="button" class="btn-foto" onclick="abrirSeletorFoto('camera')"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg>Tirar foto</button>
+            <button type="button" class="btn-foto" onclick="abrirSeletorFoto('galeria')"><svg class="ic" aria-hidden="true"><use href="#i-photo"/></svg>Galeria</button>
+            <button type="button" class="btn-foto" onclick="abrirSeletorFoto('arquivo')"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg>Arquivo</button>
+          </div>
+          <div class="hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg> A foto pode ser adicionada depois — salve o produto e edite pela aba Pedido.</div>
+        </div>
+        <div id="foto-preview-box" style="display:none">
+          <div class="foto-preview-wrap">
+            <img id="foto-preview-img" class="foto-preview" src="" alt="Pré-visualização da foto do produto">
+            <button type="button" class="foto-remove" onclick="removerFoto()" aria-label="Remover foto"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+          </div>
+          <div class="foto-btns" style="margin-top:8px">
+            <button type="button" class="btn-foto" onclick="abrirSeletorFoto('camera')"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg>Nova foto</button>
+            <button type="button" class="btn-foto" onclick="abrirSeletorFoto('galeria')"><svg class="ic" aria-hidden="true"><use href="#i-photo"/></svg>Galeria</button>
+            <button type="button" class="btn-foto" onclick="abrirSeletorFoto('arquivo')"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg>Arquivo</button>
+          </div>
+          <div class="hint" id="foto-info"></div>
+        </div>
+        <input type="file" id="input-camera" accept="image/*" capture="environment" hidden>
+        <input type="file" id="input-galeria" accept="image/*" hidden>
+        <input type="file" id="input-arquivo" accept="image/*" hidden>
+      </div>
+    </section>
+
+    <!-- 5. GRADE -->
+    <section class="section">
+      <h2 class="section-title">5. Grade de tamanhos e cores</h2>
+      <div class="fields">
+        <div class="field">
+          <label for="grade-tipo-select">Tipo de grade</label>
+          <select class="grade-tipo-select" id="grade-tipo-select"></select>
+        </div>
+        <div class="grade-info-badge" id="grade-info-badge"></div>
+        <div class="grade-wrap">
+          <table class="grade-table" id="grade-tabela"><thead></thead><tbody></tbody></table>
+        </div>
+        <button type="button" class="btn-add-cor" onclick="gradeForm.addCor()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Adicionar cor</button>
+        <div class="hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg> O nome da cor é limitado a 10 caracteres (limite do campo CD_COR no TOTVS).</div>
+      </div>
+    </section>
+
+    <!-- 6. LOJAS -->
+    <section class="section">
+      <h2 class="section-title">6. Distribuição por loja (packs)</h2>
+      <div class="fields">
+        <div class="field">
+          <span class="rotulo">Peças por pack (soma da grade)</span>
+          <div class="pecas-pack-display" id="pecas-pack-display">0 peças</div>
+        </div>
+        <div class="aplicar-todas">
+          <input type="number" id="packs-todas" inputmode="numeric" min="0" placeholder="0" aria-label="Packs para todas as lojas">
+          <button type="button" onclick="aplicarPacksTodas()">Aplicar a todas as lojas</button>
+        </div>
+        <div class="lojas-grid" id="lojas-container"></div>
+        <div class="totais">
+          <div class="total-item"><div class="val" id="tot-packs">0</div><div class="lbl">Total packs</div></div>
+          <div class="total-item"><div class="val" id="tot-pecas">0</div><div class="lbl">Total peças</div></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="actions-box">
+      <div id="confirmacao-box" style="display:none">
+        <div class="aviso aviso-ok">
+          <svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>
+          <div id="confirmacao-texto">Produto salvo!</div>
+        </div>
+        <button type="button" class="btn btn-azul2" onclick="novoProdutoLimpo()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Adicionar mais produto</button>
+        <button type="button" class="btn btn-ghost" onclick="showTab('lista')"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg> Ver pedido completo</button>
+      </div>
+      <div id="btn-salvar-box">
+        <button type="button" class="btn btn-primary" onclick="salvarProduto()"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg> <span id="btn-salvar-texto">Salvar produto</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= VIEW LISTA ======================= -->
+  <div id="view-lista" role="tabpanel" aria-labelledby="tab-lista" style="display:none">
+    <section class="section">
+      <h2 class="section-title">Produtos do pedido</h2>
+      <div class="resumo-pedido" id="resumo-pedido" style="display:none">
+        <div class="resumo-item"><div class="v" id="res-prod">0</div><div class="l">produtos</div></div>
+        <div class="resumo-item"><div class="v" id="res-packs">0</div><div class="l">packs</div></div>
+        <div class="resumo-item"><div class="v" id="res-pecas">0</div><div class="l">peças</div></div>
+      </div>
+      <div id="lista-produtos" class="produtos-lista">
+        <div class="empty-state">Nenhum produto cadastrado ainda.</div>
+      </div>
+    </section>
+    <div class="actions-box">
+      <button type="button" class="btn btn-csv" onclick="exportarCSV()"><svg class="ic" aria-hidden="true"><use href="#i-csv"/></svg> Exportar CSV para TOTVS</button>
+      <button type="button" class="btn btn-pdf" onclick="exportarPDF()"><svg class="ic" aria-hidden="true"><use href="#i-pdf"/></svg> Gerar PDF para fornecedor</button>
+      <button type="button" class="btn-outline" onclick="exportarBackup()"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> Baixar backup (.json)</button>
+      <button type="button" class="btn-outline" onclick="document.getElementById('input-backup').click()"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Restaurar backup (.json)</button>
+      <input type="file" id="input-backup" accept="application/json,.json" hidden>
+      <button type="button" class="btn-outline" onclick="novoPedido()"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg> Novo pedido (apaga tudo)</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Únicas dependências externas: só são necessárias para gerar o PDF.
+     O cadastro, o CSV e o backup .json funcionam mesmo sem internet. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+'use strict';
+/* =========================================================================
+   CADASTRO DE PRODUTOS — LOJAS EMMANUELLE
+   Aplicação de página única, sem back-end. Todos os dados ficam no
+   localStorage do navegador de quem usa (nada é enviado para servidor).
+   ========================================================================= */
+
+/* ===================== CONFIGURAÇÃO ===================== */
+const CFG = {
+  chaveStorage: 'emmanuelle_cadastro_v2',
+  chaveRascunho: 'emmanuelle_rascunho_v2',
+  fotoMaxLado: 1000,        // px do maior lado após redimensionar
+  fotoQualidade: 0.78,      // qualidade JPEG
+  csvSeparador: ';',
+  csvDecimal: ',',          // TOTVS/Excel pt-BR. Troque para '.' se a importação exigir ponto.
+  csvQuebraLinha: '\r\n',
+};
+
+/* ===================== DADOS DE REFERÊNCIA ===================== */
+const GRADES = {
+  g1: {nome:'PP ao XGG',           cdGrade:'8',   rotulo:'FEMININO / MASCULINO / FITNESS / R.ÍNTIMA — PP P M G GG XGG', tamanhos:['PP','P','M','G','GG','XGG']},
+  g2: {nome:'Numeração 34-48',     cdGrade:'9',   rotulo:'FEMININO / MASCULINO / FITNESS / R.ÍNTIMA — Numeração 34 ao 48', tamanhos:['34','36','38','40','42','44','46','48']},
+  g3: {nome:'Meias',               cdGrade:'22',  rotulo:'MEIAS FEM / MASC / INF — 19/22 · 23/27 · 28/33 · 33/38 · 39/43', tamanhos:['19/22','23/27','28/33','33/38','39/43']},
+  g4: {nome:'Único',               cdGrade:'1',   rotulo:'ACESSÓRIOS / BOLSAS — ÚNICO', tamanhos:['ÚNICO']},
+  g5: {nome:'Plus Size G1-G5',     cdGrade:'12',  rotulo:'PLUS SIZE TAM / R.ÍNTIMA — G1 G2 G3 G4 G5', tamanhos:['G1','G2','G3','G4','G5']},
+  g6: {nome:'Plus Size Num 48-58', cdGrade:'',    rotulo:'PLUS SIZE NUM / R.ÍNTIMA — 48 50 52 54 56 58 (sem código TOTVS)', tamanhos:['48','50','52','54','56','58']},
+  g7: {nome:'Infantil 1º Passos',  cdGrade:'33',  rotulo:'INFANTIL 1º PASSOS — 1 · 2 · 3', tamanhos:['1','2','3']},
+  g8: {nome:'Infantil Idade',      cdGrade:'36',  rotulo:'INFANTIL IDADE — 4 · 6 · 8 · 10', tamanhos:['4','6','8','10']},
+  g9: {nome:'Infantil Juvenil',    cdGrade:'118', rotulo:'INFANTIL JUVENIL — 10 · 12 · 14 · 16 · 18', tamanhos:['10','12','14','16','18']},
+  g10:{nome:'Infantil Bebê',       cdGrade:'97',  rotulo:'INFANTIL BEBÊ — 0a3m · 3a6m · 6a9m · 9a12m · 12a18m · 24m', tamanhos:['0a3m','3a6m','6a9m','9a12m','12a18m','24m']},
+};
+
+const SEGMENTOS = [
+  {cod:'100', nome:'FEMININO'},
+  {cod:'200', nome:'MASCULINO'},
+  {cod:'300', nome:'INFANTIL'},
+];
+
+const DEPARTAMENTOS = ['JOVEM','PLUS SIZE','CONTEMPORÂNEO','1º PASSOS - 1/2/3','INFANTIL','JUVENIL'];
+const MARCAS = ['ALTERNATIVA','DI VANUCCI','ATRIUM','MILK AND HONEY','BZK BABY','BZK PRIMEIROS PASSOS','BZK KIDS','BZK TEENS'];
+const ESTACOES = ['VERÃO 26','INVERNO 26','VERÃO 27','INVERNO 27'];
+
+const SECOES = {
+  '100':[{cod:'100',nome:'BLUSA DE MALHA'},{cod:'110',nome:'BLUSA DE TECIDO'},{cod:'120',nome:'SAIA'},{cod:'130',nome:'CALÇA'},{cod:'140',nome:'BERMUDA'},{cod:'150',nome:'ROUPA ÍNTIMA'},{cod:'160',nome:'PRAIA'},{cod:'170',nome:'BLAZER/CARDIGANS'},{cod:'180',nome:'JAQUETA'},{cod:'190',nome:'ACESSÓRIOS'},{cod:'200',nome:'VESTIDO'},{cod:'210',nome:'CONJUNTO'},{cod:'220',nome:'LINGERIE NOITE'},{cod:'230',nome:'AERÓBICA/FITNESS'},{cod:'240',nome:'BOLSA'},{cod:'250',nome:'PLUS SIZE'}],
+  '200':[{cod:'300',nome:'CAMISETA'},{cod:'310',nome:'CAMISA'},{cod:'320',nome:'CALÇA'},{cod:'330',nome:'BERMUDA'},{cod:'340',nome:'CUECA'},{cod:'350',nome:'ACESSÓRIOS'},{cod:'360',nome:'JAQUETA'},{cod:'370',nome:'PRAIA'},{cod:'380',nome:'FITNESS'},{cod:'390',nome:'PLUS SIZE'}],
+  '300':[{cod:'600',nome:'BLUSA MENINA'},{cod:'610',nome:'SAIA MENINA'},{cod:'620',nome:'CALÇA MENINA'},{cod:'630',nome:'BERMUDA MENINA'},{cod:'640',nome:'CAMISETA MENINO'},{cod:'650',nome:'CALÇA MENINO'},{cod:'660',nome:'BERMUDA MENINO'},{cod:'670',nome:'ACESSÓRIOS'},{cod:'680',nome:'PRAIA'},{cod:'690',nome:'JAQUETA'}],
+};
+
+const ESPECIES = {
+  '100':[{cod:'100410',nome:'MANGA CURTA'},{cod:'100420',nome:'MANGA LONGA'},{cod:'100430',nome:'MANGA 7/8'},{cod:'100440',nome:'MANGA 3/4'},{cod:'100450',nome:'BABY LOOK'},{cod:'100460',nome:'REGATA'},{cod:'100470',nome:'ALÇA'},{cod:'100480',nome:'UM OMBRO'},{cod:'100490',nome:'FRENTE-UNICA'},{cod:'100500',nome:'TOMARA QUE CAIA'},{cod:'100510',nome:'RETILINEA'}],
+  '110':[{cod:'110410',nome:'MANGA CURTA'},{cod:'110420',nome:'MANGA LONGA'},{cod:'110430',nome:'MANGA 7/8'},{cod:'110440',nome:'MANGA 3/4'},{cod:'110450',nome:'REGATA'},{cod:'110460',nome:'ALCA'},{cod:'110470',nome:'FRENTE-UNICA'},{cod:'110480',nome:'TOMARA QUE CAIA'}],
+  '120':[{cod:'120410',nome:'MALHA'},{cod:'120420',nome:'JEANS'},{cod:'120430',nome:'SARJA'},{cod:'120440',nome:'TECIDO'},{cod:'120490',nome:'SALOPETE'}],
+  '130':[{cod:'130410',nome:'MALHA'},{cod:'130420',nome:'JEANS'},{cod:'130430',nome:'JEANS LYCRA'},{cod:'130440',nome:'SARJA'},{cod:'130450',nome:'SARJA LYCRA'},{cod:'130460',nome:'CAPRI'},{cod:'130470',nome:'TECIDO'}],
+  '140':[{cod:'140410',nome:'MALHA'},{cod:'140420',nome:'JEANS'},{cod:'140430',nome:'JEANS LYCRA'},{cod:'140440',nome:'SARJA'},{cod:'140450',nome:'SARJA LYCRA'},{cod:'140460',nome:'TECIDO'},{cod:'140470',nome:'SHORT'},{cod:'140480',nome:'SURF'}],
+  '150':[{cod:'150410',nome:'CALCINHA'},{cod:'150420',nome:'TANGA'},{cod:'150430',nome:'CALCINHA SEXY'},{cod:'150440',nome:'CALCINHA CLASSICA'},{cod:'150450',nome:'SOUTIEN CLASSICO'},{cod:'150460',nome:'SOUTIEN MEIA-TAÇA'},{cod:'150470',nome:'SOUTIEN - SUSTENTAÇÃO'},{cod:'150480',nome:'CINTA'},{cod:'150490',nome:'BODY'},{cod:'150500',nome:'CONJUNTO'}],
+  '160':[{cod:'160410',nome:'BIQUINI'},{cod:'160420',nome:'SUNQUINI'},{cod:'160430',nome:'MAIÔ'},{cod:'160440',nome:'SAIDA DE PRAIA'},{cod:'160450',nome:'SAIA'},{cod:'160460',nome:'SHORT'}],
+  '170':[{cod:'170410',nome:'SPENCER'},{cod:'170420',nome:'CLASSICO'},{cod:'170430',nome:'CARDIGAN'}],
+  '180':[{cod:'180410',nome:'JEANS'},{cod:'180420',nome:'SARJA'},{cod:'180430',nome:'SINTÉTICO'},{cod:'180440',nome:'MALHA'},{cod:'180450',nome:'TECIDO'},{cod:'180460',nome:'COLETE'}],
+  '190':[{cod:'190410',nome:'OCULOS'},{cod:'190420',nome:'MEIA'},{cod:'190430',nome:'CINTO SINTÉTICO'},{cod:'190440',nome:'CINTO TECIDO'},{cod:'190450',nome:'BONÉ'},{cod:'190460',nome:'LENÇO'},{cod:'190470',nome:'MEIA CALÇA'},{cod:'190480',nome:'GARRAFA'}],
+  '200':[{cod:'200410',nome:'MALHA'},{cod:'200420',nome:'JEANS'},{cod:'200430',nome:'SARJA'},{cod:'200440',nome:'TECIDO'},{cod:'200450',nome:'JS'}],
+  '210':[{cod:'210410',nome:'MALHA'},{cod:'210420',nome:'TECIDO'}],
+  '220':[{cod:'220410',nome:'CAMISOLA'},{cod:'220420',nome:'BABY-DOLL'},{cod:'220430',nome:'SHORT-DOLL'},{cod:'220440',nome:'PIJAMA CURTO'},{cod:'220450',nome:'PIJAMA LONGO'}],
+  '230':[{cod:'230410',nome:'CALCA'},{cod:'230420',nome:'TOP'},{cod:'230430',nome:'BERMUDA'},{cod:'230440',nome:'REGATA'},{cod:'230450',nome:'BLUSA'}],
+  '240':[{cod:'240410',nome:'TECIDO'},{cod:'240420',nome:'COURO'},{cod:'240430',nome:'SINTETICO'},{cod:'240440',nome:'CARTEIRA'}],
+  '250':[{cod:'250410',nome:'BLUSA DE MALHA'},{cod:'250420',nome:'BLUSA DE TECIDO'},{cod:'250430',nome:'SAIA'},{cod:'250440',nome:'CALÇA'},{cod:'250450',nome:'MACACÃO'},{cod:'250460',nome:'BERMUDA'},{cod:'250470',nome:'VESTIDO'},{cod:'250480',nome:'JAQUETA / BLAZER'}],
+  '300':[{cod:'300410',nome:'MANGA CURTA'},{cod:'300420',nome:'MANGA LONGA'},{cod:'300430',nome:'REGATA'},{cod:'300440',nome:'MACHÃO'},{cod:'300480',nome:'POLO MANGA CURTA'},{cod:'300490',nome:'POLO MANGA LONGA'}],
+  '310':[{cod:'310410',nome:'CAMISA LISA MC'},{cod:'310420',nome:'CAMISA LISA ML'},{cod:'310430',nome:'CAMISA LISTRADA MC'},{cod:'310440',nome:'CAMISA LISTRADA ML'},{cod:'310490',nome:'CAMISA SOCIAL MC'},{cod:'310500',nome:'CAMISA SOCIAL ML'}],
+  '320':[{cod:'320410',nome:'MALHA'},{cod:'320420',nome:'JEANS'},{cod:'320430',nome:'SARJA'},{cod:'320440',nome:'TECIDO ESPORTE'},{cod:'320450',nome:'TECIDO SOCIAL'}],
+  '330':[{cod:'330410',nome:'MALHA'},{cod:'330420',nome:'JEANS'},{cod:'330430',nome:'SARJA'},{cod:'330440',nome:'TECIDO ESPORTE'},{cod:'330450',nome:'SURF'}],
+  '340':[{cod:'340410',nome:'SLIP'},{cod:'340420',nome:'TRADICIONAL'},{cod:'340430',nome:'KIT'},{cod:'340440',nome:'BOXER'},{cod:'340450',nome:'SAMBA CANÇÃO'}],
+  '350':[{cod:'350410',nome:'MEIA SOCIAL'},{cod:'350420',nome:'MEIA ESPORTIVA'},{cod:'350430',nome:'CINTO SINTÉTICO'},{cod:'350440',nome:'BONÉ'},{cod:'350450',nome:'CARTEIRA'},{cod:'350460',nome:'ÓCULOS'},{cod:'350470',nome:'MOCHILA'}],
+  '360':[{cod:'360410',nome:'JEANS'},{cod:'360420',nome:'SARJA'},{cod:'360430',nome:'SINTÉTICO'},{cod:'360440',nome:'MALHA'},{cod:'360450',nome:'TECIDO'}],
+  '370':[{cod:'370410',nome:'SUNGA'},{cod:'370420',nome:'SHORT'}],
+  '380':[{cod:'380410',nome:'CAMISETA MC'},{cod:'380420',nome:'REGATA'},{cod:'380430',nome:'MACHÃO'},{cod:'380440',nome:'BERMUDA'},{cod:'380450',nome:'SHORT'},{cod:'380460',nome:'CALÇA'},{cod:'380470',nome:'JAQUETA'},{cod:'380480',nome:'CAMISETA ML'}],
+  '390':[{cod:'390410',nome:'CAMISETA'},{cod:'390420',nome:'CAMISA'},{cod:'390430',nome:'CALÇA'},{cod:'390440',nome:'BERMUDA'},{cod:'390450',nome:'JAQUETA'},{cod:'390460',nome:'FITNESS'}],
+  '600':[{cod:'600410',nome:'MANGA CURTA'},{cod:'600420',nome:'MANGA LONGA'},{cod:'600430',nome:'REGATA'},{cod:'600440',nome:'ALÇA'},{cod:'600450',nome:'UM OMBRO'},{cod:'600460',nome:'TOMARA QUE CAIA'},{cod:'600470',nome:'FRENTE UNICA'},{cod:'600480',nome:'1OS PASSOS'}],
+  '610':[{cod:'610410',nome:'MALHA'},{cod:'610420',nome:'JEANS'},{cod:'610430',nome:'SARJA'},{cod:'610440',nome:'TECIDO'},{cod:'610450',nome:'VESTIDO'},{cod:'610460',nome:'SALOPETE'}],
+  '620':[{cod:'620410',nome:'MALHA'},{cod:'620420',nome:'JEANS'},{cod:'620430',nome:'SARJA'},{cod:'620440',nome:'TECIDO'},{cod:'620450',nome:'MACACÃO'},{cod:'620460',nome:'CAPRI'},{cod:'620470',nome:'CONJUNTO'}],
+  '630':[{cod:'630410',nome:'MALHA'},{cod:'630420',nome:'JEANS'},{cod:'630430',nome:'SARJA'},{cod:'630440',nome:'TECIDO'},{cod:'630450',nome:'SHORT'},{cod:'630460',nome:'1OS PASSOS'}],
+  '640':[{cod:'640410',nome:'MANGA CURTA'},{cod:'640420',nome:'MANGA LONGA'},{cod:'640430',nome:'PÓLO MC'},{cod:'640440',nome:'PÓLO ML'},{cod:'640450',nome:'REGATA'},{cod:'640480',nome:'1OS PASSOS'}],
+  '650':[{cod:'650410',nome:'MALHA'},{cod:'650420',nome:'JEANS'},{cod:'650430',nome:'SARJA'},{cod:'650440',nome:'TECIDO'},{cod:'650450',nome:'CAPRI'},{cod:'650460',nome:'CONJUNTO'}],
+  '660':[{cod:'660410',nome:'MALHA'},{cod:'660420',nome:'JEANS'},{cod:'660430',nome:'SARJA'},{cod:'660440',nome:'TECIDO'},{cod:'660450',nome:'SURF'},{cod:'660460',nome:'1OS PASSOS'}],
+  '670':[{cod:'670410',nome:'CALCINHA'},{cod:'670420',nome:'MEIA MENINA'},{cod:'670430',nome:'CUECA'},{cod:'670440',nome:'MEIA MENINO'},{cod:'670450',nome:'CAMISOLA'},{cod:'670460',nome:'BOLSA MENINA'},{cod:'670470',nome:'BONÉ'},{cod:'670480',nome:'MOCHILA'}],
+  '680':[{cod:'680410',nome:'BIQUINI'},{cod:'680420',nome:'SUQUINI'},{cod:'680430',nome:'MAIÔ'},{cod:'680440',nome:'SAIDA DE PRAIA'},{cod:'680450',nome:'SUNGA'},{cod:'680460',nome:'SHORT'}],
+  '690':[{cod:'690410',nome:'JEANS MENINA'},{cod:'690420',nome:'SARJA MENINA'},{cod:'690430',nome:'SINTÉTICO MENINA'},{cod:'690440',nome:'MALHA MENINA'},{cod:'690450',nome:'JEANS MENINO'},{cod:'690460',nome:'SARJA MENINO'},{cod:'690480',nome:'MALHA MENINO'}],
+};
+
+const LOJAS = [
+  {cod:902,nome:'MC1-20'},{cod:907,nome:'MC3-30'},{cod:1103,nome:'AJI-1'},{cod:1104,nome:'AJI-2'},
+  {cod:2210,nome:'ARA-22'},{cod:2612,nome:'ILH-24'},{cod:2802,nome:'CAN-27'},{cod:2903,nome:'JEQ-28'},
+  {cod:3314,nome:'VIT-26'},
+];
+
+/* ===================== UTILITÁRIOS ===================== */
+const $ = (id) => document.getElementById(id);
+
+function esc(v){
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function inteiro(v){ const n = parseInt(v, 10); return Number.isFinite(n) && n > 0 ? n : 0; }
+
+/** Aceita 1.234,56 / 1234,56 / 1234.56 e devolve número ou null. */
+function parseMoeda(v){
+  if (v == null) return null;
+  let s = String(v).trim().replace(/\s|R\$/gi,'');
+  if (!s) return null;
+  if (s.includes(',')) s = s.replace(/\./g,'').replace(',','.');
+  const n = parseFloat(s);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+function fmtMoeda(n){
+  return (n == null) ? '' : n.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtData(iso){
+  if (!iso) return '';
+  const [a,m,d] = String(iso).split('-');
+  return (a && m && d) ? `${d}/${m}/${a}` : '';
+}
+function nomeArquivo(s){
+  return String(s || 'pedido').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').substring(0,40) || 'pedido';
+}
+function baixarArquivo(blob, nome){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+let toastTimer = null;
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 2600);
+}
+function nomeSecao(seg, cod){ return (SECOES[seg] || []).find(s => s.cod === cod)?.nome || ''; }
+function nomeEspecie(sec, cod){ return (ESPECIES[sec] || []).find(e => e.cod === cod)?.nome || ''; }
+function nomeSegmento(cod){ return SEGMENTOS.find(s => s.cod === cod)?.nome || ''; }
+
+/* ===================== ESTADO ===================== */
+const state = {
+  pedido: {dtIni:'', dtFim:'', prazo:'', comissao:'', fornecedor:'', frete:'', materiaPrima:''},
+  produtos: [],
+  seq: 1,
+};
+let fotoAtual = null;      // dataURL da foto do produto em edição/criação
+let editandoId = null;     // id do produto sendo editado (null = novo)
+
+/* ===================== PERSISTÊNCIA (localStorage) =====================
+   Duas chaves separadas de propósito: o rascunho é pequeno e é reescrito a
+   cada tecla; a lista de produtos é grande (fotos em base64) e só é
+   reescrita quando realmente muda. */
+let avisouQuota = false;
+let tRascunho = null, tDados = null;
+
+function gravar(chave, valor){
+  try {
+    localStorage.setItem(chave, JSON.stringify(valor));
+    return true;
+  } catch (e) {
+    if (!avisouQuota) {
+      avisouQuota = true;
+      alert('O navegador atingiu o limite de armazenamento local (normalmente por causa das fotos).\n\n' +
+            'O pedido continua funcionando nesta aba, mas pode não sobreviver a um recarregamento.\n' +
+            'Recomendação: gere o CSV/PDF agora ou use "Baixar backup (.json)".');
+    }
+    return false;
+  }
+}
+const gravarRascunho = () => gravar(CFG.chaveRascunho, coletarRascunho());
+const gravarDados = () => gravar(CFG.chaveStorage, {versao:2, pedido:state.pedido, produtos:state.produtos, seq:state.seq});
+
+/** Rascunho do produto em digitação (barato). */
+function persistir(){ clearTimeout(tRascunho); tRascunho = setTimeout(gravarRascunho, 600); }
+/** Produtos já salvos + cabeçalho do pedido (caro). */
+function persistirDados(){ clearTimeout(tDados); tDados = setTimeout(gravarDados, 600); }
+/** Grava tudo imediatamente (ao salvar, ao sair da página). */
+function persistirAgora(){
+  clearTimeout(tRascunho); clearTimeout(tDados);
+  gravarDados(); gravarRascunho();
+}
+
+function restaurar(){
+  let dados = null, rascunho = null;
+  try { dados = JSON.parse(localStorage.getItem(CFG.chaveStorage) || 'null'); } catch (e) {}
+  try { rascunho = JSON.parse(localStorage.getItem(CFG.chaveRascunho) || 'null'); } catch (e) {}
+  if (!dados && !rascunho) return false;
+
+  if (dados && typeof dados === 'object') {
+    state.pedido = Object.assign(state.pedido, dados.pedido || {});
+    state.produtos = Array.isArray(dados.produtos) ? dados.produtos.map(normalizarProduto).filter(Boolean) : [];
+    state.seq = Number(dados.seq) > 0 ? Number(dados.seq) : (state.produtos.reduce((m,p) => Math.max(m, p.id), 0) + 1);
+  }
+  aplicarPedidoNoForm();
+  if (rascunho) aplicarRascunho(rascunho);
+  return true;
+}
+function limparStorage(){
+  [CFG.chaveStorage, CFG.chaveRascunho].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+}
+
+/** Defesa contra JSON corrompido/antigo vindo do storage ou de um backup. */
+function normalizarProduto(p){
+  if (!p || typeof p !== 'object') return null;
+  const grade = GRADES[p.tipoGrade] ? p.tipoGrade : 'g1';
+  const tamanhos = Array.isArray(p.tamanhos) && p.tamanhos.length ? p.tamanhos : GRADES[grade].tamanhos.slice();
+  return {
+    id: Number(p.id) || Date.now(),
+    refForn: String(p.refForn || ''),
+    ncm: String(p.ncm || ''),
+    segmento: String(p.segmento || ''), segmentoNome: String(p.segmentoNome || ''),
+    secao: String(p.secao || ''), secaoNome: String(p.secaoNome || ''),
+    especie: String(p.especie || ''), especieNome: String(p.especieNome || ''),
+    departamento: String(p.departamento || ''),
+    descricao: String(p.descricao || ''),
+    observacao: String(p.observacao || ''),
+    marca: String(p.marca || ''), estacao: String(p.estacao || ''),
+    pCompra: (p.pCompra == null || p.pCompra === '') ? null : Number(p.pCompra),
+    pVenda:  (p.pVenda  == null || p.pVenda  === '') ? null : Number(p.pVenda),
+    foto: (typeof p.foto === 'string' && p.foto.startsWith('data:image/')) ? p.foto : null,
+    tipoGrade: grade,
+    tamanhos,
+    grade: (Array.isArray(p.grade) ? p.grade : []).map(r => ({
+      cor: String(r?.cor || '').substring(0,10),
+      tam: Object.fromEntries(tamanhos.map(t => [t, inteiro((r?.tam ?? r?.tamanhos ?? {})[t])])),
+    })),
+    packs: LOJAS.map((_, i) => inteiro(Array.isArray(p.packs) ? p.packs[i]
+      : (Array.isArray(p.lojas) ? p.lojas[i]?.packs : 0))),
+  };
+}
+
+/* Derivados (nunca guardados — sempre calculados, para não dessincronizar) */
+function pecasPorPack(p){ return p.grade.reduce((s,r) => s + p.tamanhos.reduce((x,t) => x + (r.tam[t] || 0), 0), 0); }
+function totalPacks(p){ return p.packs.reduce((s,n) => s + n, 0); }
+function totalPecas(p){ return totalPacks(p) * pecasPorPack(p); }
+function markupDe(p){
+  return (p.pCompra > 0 && p.pVenda > 0) ? (p.pVenda / p.pCompra).toFixed(2) + 'x' : '';
+}
+
+/* ===================== EDITOR DE GRADE (reutilizável) ===================== */
+function criarEditorGrade(cfg){
+  const st = {tipo:'g1', linhas:[]};
+
+  const tams = () => GRADES[st.tipo].tamanhos;
+  const totalLinha = (r) => tams().reduce((s,t) => s + (r.tam[t] || 0), 0);
+
+  function setTipo(tipo, manter){
+    st.tipo = GRADES[tipo] ? tipo : 'g1';
+    const novos = tams();
+    st.linhas = st.linhas.map(r => ({
+      cor: r.cor,
+      tam: Object.fromEntries(novos.map(t => [t, manter ? (r.tam[t] || 0) : 0])),
+    }));
+    if (!st.linhas.length) st.linhas.push(linhaVazia());
+    cfg.select.value = st.tipo;
+    cfg.badge.textContent = novos.join(' · ');
+    render();
+  }
+  const linhaVazia = (cor) => ({cor: cor || '', tam: Object.fromEntries(tams().map(t => [t, 0]))});
+
+  function addCor(){ st.linhas.push(linhaVazia()); render(); mudou(); }
+  function remCor(i){
+    st.linhas.splice(i, 1);
+    if (!st.linhas.length) st.linhas.push(linhaVazia());
+    render(); mudou();
+  }
+  function mudou(){ if (cfg.onChange) cfg.onChange(); }
+
+  function render(){
+    const tabela = cfg.tabela;
+    const thead = tabela.tHead, tbody = tabela.tBodies[0];
+    const largura = tams().length > 6 ? '30px' : '38px';
+    thead.textContent = ''; tbody.textContent = '';
+
+    const trh = document.createElement('tr');
+    trh.appendChild(criarTh('Cor', 'min-width:66px'));
+    tams().forEach(t => trh.appendChild(criarTh(t, `min-width:${largura};font-size:10px`)));
+    trh.appendChild(criarTh('Tot', 'min-width:34px', 'th-total'));
+    trh.appendChild(criarTh('', 'min-width:26px'));
+    thead.appendChild(trh);
+
+    st.linhas.forEach((r, i) => {
+      const tr = document.createElement('tr');
+
+      const tdCor = document.createElement('td');
+      tdCor.className = 'cor-cell';
+      const inpCor = document.createElement('input');
+      inpCor.type = 'text'; inpCor.value = r.cor; inpCor.maxLength = 10;
+      inpCor.placeholder = 'Cor ' + (i + 1);
+      inpCor.setAttribute('aria-label', 'Nome da cor ' + (i + 1));
+      inpCor.addEventListener('input', () => {
+        // maxlength não vale para valor colado por script/restaurado: trunca também aqui
+        if (inpCor.value.length > 10) inpCor.value = inpCor.value.substring(0, 10);
+        r.cor = inpCor.value;
+        mudou();
+      });
+      tdCor.appendChild(inpCor);
+      tr.appendChild(tdCor);
+
+      const tdTot = document.createElement('td');
+      tdTot.className = 'total-col';
+
+      tams().forEach(t => {
+        const td = document.createElement('td');
+        td.className = 'tam-cell';
+        const inp = document.createElement('input');
+        inp.type = 'number'; inp.inputMode = 'numeric'; inp.min = '0'; inp.step = '1';
+        inp.value = r.tam[t] || '';
+        inp.placeholder = '0';
+        inp.setAttribute('aria-label', `Quantidade ${t} da cor ${i + 1}`);
+        inp.addEventListener('input', () => {
+          r.tam[t] = inteiro(inp.value);
+          tdTot.textContent = totalLinha(r);
+          mudou();
+        });
+        inp.addEventListener('wheel', () => inp.blur());   // evita alterar valor com scroll
+        td.appendChild(inp);
+        tr.appendChild(td);
+      });
+
+      tdTot.textContent = totalLinha(r);
+      tr.appendChild(tdTot);
+
+      const tdDel = document.createElement('td');
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'btn-lixo';
+      btn.setAttribute('aria-label', 'Remover cor ' + (i + 1));
+      btn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>';
+      btn.addEventListener('click', () => remCor(i));
+      tdDel.appendChild(btn);
+      tr.appendChild(tdDel);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function criarTh(txt, style, cls){
+    const th = document.createElement('th');
+    th.textContent = txt;
+    if (style) th.setAttribute('style', style);
+    if (cls) th.className = cls;
+    return th;
+  }
+
+  // Monta as opções do seletor de grade a partir da constante GRADES
+  cfg.select.textContent = '';
+  Object.keys(GRADES).forEach(k => {
+    const o = document.createElement('option');
+    o.value = k; o.textContent = GRADES[k].rotulo;
+    cfg.select.appendChild(o);
+  });
+  cfg.select.addEventListener('change', () => { setTipo(cfg.select.value, true); mudou(); });
+
+  return {
+    setTipo,
+    addCor,
+    render,
+    get tipo(){ return st.tipo; },
+    get tamanhos(){ return tams().slice(); },
+    get linhas(){ return st.linhas; },
+    set linhas(v){ st.linhas = v && v.length ? v : [linhaVazia()]; render(); },
+    total(){ return st.linhas.reduce((s,r) => s + totalLinha(r), 0); },
+    limpar(){ st.linhas = [linhaVazia()]; render(); },
+  };
+}
+
+/* ===================== EDITOR DE LOJAS ===================== */
+function criarEditorLojas(cfg){
+  const packs = LOJAS.map(() => 0);
+  const inputs = [];
+  const badges = [];
+
+  LOJAS.forEach((l, i) => {
+    const item = document.createElement('div');
+    item.className = 'loja-item';
+
+    const cod = document.createElement('div'); cod.className = 'loja-cod'; cod.textContent = l.cod;
+    const nome = document.createElement('div'); nome.className = 'loja-nome'; nome.textContent = l.nome;
+    const bottom = document.createElement('div'); bottom.className = 'loja-bottom';
+
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.className = 'loja-input'; inp.inputMode = 'numeric';
+    inp.min = '0'; inp.step = '1'; inp.value = '0'; inp.placeholder = '0';
+    inp.setAttribute('aria-label', `Packs para a loja ${l.cod} ${l.nome}`);
+    inp.addEventListener('input', () => { packs[i] = inteiro(inp.value); atualizar(); if (cfg.onChange) cfg.onChange(); });
+    inp.addEventListener('wheel', () => inp.blur());
+
+    const badge = document.createElement('div'); badge.className = 'loja-total-badge'; badge.textContent = '0 pç';
+
+    bottom.append(inp, badge);
+    item.append(cod, nome, bottom);
+    cfg.container.appendChild(item);
+    inputs.push(inp); badges.push(badge);
+  });
+
+  function atualizar(){
+    const pp = cfg.pecasPorPack();
+    packs.forEach((n, i) => { badges[i].textContent = (n * pp) + ' pç'; });
+  }
+
+  return {
+    atualizar,
+    get packs(){ return packs.slice(); },
+    set packs(v){
+      LOJAS.forEach((_, i) => { packs[i] = inteiro(v?.[i]); inputs[i].value = packs[i] || 0; });
+      atualizar();
+    },
+    total(){ return packs.reduce((s,n) => s + n, 0); },
+    aplicarTodas(n){
+      LOJAS.forEach((_, i) => { packs[i] = inteiro(n); inputs[i].value = packs[i]; });
+      atualizar(); if (cfg.onChange) cfg.onChange();
+    },
+  };
+}
+
+/* ===================== FOTO (orientação + compressão) ===================== */
+/*
+  Navegadores modernos JÁ aplicam a orientação EXIF ao desenhar a imagem.
+  Por isso usamos createImageBitmap({imageOrientation:'from-image'}) e, no
+  fallback, apenas <img> — sem rotação manual, que causaria dupla rotação.
+*/
+async function processarFoto(file){
+  if (!file) return null;
+  if (!/^image\//.test(file.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name || '')) {
+    throw new Error('O arquivo selecionado não é uma imagem.');
+  }
+  let fonte;
+  try {
+    if (typeof createImageBitmap === 'function') {
+      fonte = await createImageBitmap(file, {imageOrientation:'from-image'});
+    } else {
+      fonte = await carregarViaImg(file);
+    }
+  } catch (e) {
+    fonte = await carregarViaImg(file);   // Safari antigo / HEIC não suportado cai aqui
+  }
+
+  const w = fonte.width, h = fonte.height;
+  if (!w || !h) throw new Error('Não foi possível ler as dimensões da imagem.');
+
+  const escala = Math.min(1, CFG.fotoMaxLado / Math.max(w, h));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(w * escala));
+  canvas.height = Math.max(1, Math.round(h * escala));
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(fonte, 0, 0, canvas.width, canvas.height);
+  if (fonte.close) fonte.close();
+
+  return canvas.toDataURL('image/jpeg', CFG.fotoQualidade);
+}
+function carregarViaImg(file){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Formato de imagem não suportado por este navegador (ex.: HEIC do iPhone).\n' +
+                       'Converta para JPG/PNG ou envie a foto pelo WhatsApp antes de usá-la.'));
+    };
+    img.src = url;
+  });
+}
+function abrirSeletorFoto(tipo){
+  $({camera:'input-camera', galeria:'input-galeria', arquivo:'input-arquivo'}[tipo]).click();
+}
+async function aoEscolherFoto(input){
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  toast('Processando foto...');
+  try {
+    const dataUrl = await processarFoto(file);
+    fotoAtual = dataUrl;
+    mostrarFoto(dataUrl);
+    persistir();
+    toast('Foto adicionada.');
+  } catch (e) {
+    alert(e.message || 'Não foi possível carregar esta imagem.');
+  }
+}
+function mostrarFoto(dataUrl){
+  if (dataUrl) {
+    $('foto-preview-img').src = dataUrl;
+    $('foto-vazia').style.display = 'none';
+    $('foto-preview-box').style.display = 'block';
+    const kb = Math.round((dataUrl.length * 3 / 4) / 1024);
+    $('foto-info').textContent = `Imagem otimizada (~${kb} KB).`;
+  } else {
+    $('foto-preview-img').removeAttribute('src');
+    $('foto-vazia').style.display = 'block';
+    $('foto-preview-box').style.display = 'none';
+  }
+}
+function removerFoto(){ fotoAtual = null; mostrarFoto(null); persistir(); }
+
+/* ===================== SELECTS EM CASCATA ===================== */
+function preencherSelect(sel, itens, placeholder){
+  sel.textContent = '';
+  const p = document.createElement('option');
+  p.value = ''; p.textContent = placeholder;
+  sel.appendChild(p);
+  itens.forEach(it => {
+    const o = document.createElement('option');
+    if (typeof it === 'string') { o.value = it; o.textContent = it; }
+    else { o.value = it.cod; o.textContent = it.cod + ' - ' + it.nome; }
+    sel.appendChild(o);
+  });
+}
+function atualizarSecoes(manter){
+  const seg = $('segmento').value;
+  preencherSelect($('secao'), SECOES[seg] || [], seg ? 'Selecione' : 'Selecione o segmento primeiro');
+  if (manter) $('secao').value = manter;
+  atualizarEspecies();
+}
+function atualizarEspecies(manter){
+  const sec = $('secao').value;
+  const lista = ESPECIES[sec] || [];
+  preencherSelect($('especie'), lista, sec ? (lista.length ? 'Selecione' : 'Sem espécies para esta seção') : 'Selecione a seção primeiro');
+  if (manter) $('especie').value = manter;
+}
+
+/* ===================== FORMULÁRIO ===================== */
+let gradeForm, lojasForm;
+
+function atualizarTotaisForm(){
+  const pp = gradeForm.total();
+  $('pecas-pack-display').textContent = pp + (pp === 1 ? ' peça' : ' peças');
+  lojasForm.atualizar();
+  const tp = lojasForm.total();
+  $('tot-packs').textContent = tp;
+  $('tot-pecas').textContent = tp * pp;
+}
+function aoMudarForm(){ atualizarTotaisForm(); persistir(); }
+
+function calcMarkup(){
+  const pc = parseMoeda($('p-compra').value);
+  const pv = parseMoeda($('p-venda').value);
+  $('markup').value = (pc > 0 && pv > 0) ? (pv / pc).toFixed(2) + 'x' : '';
+}
+function aplicarPacksTodas(){
+  const n = inteiro($('packs-todas').value);
+  lojasForm.aplicarTodas(n);
+  atualizarTotaisForm();
+  toast(n ? `${n} pack(s) aplicados a todas as lojas.` : 'Distribuição zerada.');
+}
+
+/* ---- pedido (cabeçalho) ---- */
+const CAMPOS_PEDIDO = {
+  'ped-dt-ini':'dtIni', 'ped-dt-fim':'dtFim', 'ped-prazo':'prazo', 'ped-comissao':'comissao',
+  'ped-fornecedor':'fornecedor', 'ped-frete':'frete', 'ped-materia':'materiaPrima',
+};
+function aplicarPedidoNoForm(){
+  Object.entries(CAMPOS_PEDIDO).forEach(([id, chave]) => { $(id).value = state.pedido[chave] || ''; });
+  validarDatas();
+}
+function lerPedidoDoForm(){
+  Object.entries(CAMPOS_PEDIDO).forEach(([id, chave]) => { state.pedido[chave] = $(id).value; });
+}
+function validarDatas(){
+  const {dtIni, dtFim} = state.pedido;
+  const ruim = !!(dtIni && dtFim && dtFim < dtIni);
+  $('erro-datas').classList.toggle('on', ruim);
+  return !ruim;
+}
+
+/* ---- rascunho (produto em digitação) ---- */
+const CAMPOS_PRODUTO = ['segmento','secao','especie','departamento','descricao','ref-forn','ncm','marca','estacao','p-compra','p-venda','observacao'];
+function coletarRascunho(){
+  const r = {editandoId, foto: fotoAtual, gradeTipo: gradeForm?.tipo || 'g1',
+             linhas: gradeForm ? gradeForm.linhas : [], packs: lojasForm ? lojasForm.packs : []};
+  CAMPOS_PRODUTO.forEach(id => { r[id] = $(id).value; });
+  return r;
+}
+function aplicarRascunho(r){
+  if (!r) return;
+  $('segmento').value = r['segmento'] || '';
+  atualizarSecoes(r['secao']);
+  atualizarEspecies(r['especie']);
+  CAMPOS_PRODUTO.filter(id => !['segmento','secao','especie'].includes(id))
+    .forEach(id => { $(id).value = r[id] || ''; });
+  gradeForm.setTipo(r.gradeTipo || 'g1', false);
+  if (Array.isArray(r.linhas) && r.linhas.length) {
+    const tams = gradeForm.tamanhos;
+    gradeForm.linhas = r.linhas.map(l => ({
+      cor: String(l?.cor || '').substring(0,10),
+      tam: Object.fromEntries(tams.map(t => [t, inteiro(l?.tam?.[t])])),
+    }));
+  }
+  lojasForm.packs = r.packs || [];
+  fotoAtual = (typeof r.foto === 'string' && r.foto.startsWith('data:image/')) ? r.foto : null;
+  mostrarFoto(fotoAtual);
+  editandoId = r.editandoId ?? null;
+  if (editandoId != null && !state.produtos.some(p => p.id === editandoId)) editandoId = null;
+  calcMarkup();
+  atualizarContadorDescricao();
+  atualizarModoEdicao();
+  atualizarTotaisForm();
+}
+function atualizarContadorDescricao(){ $('cont-descricao').textContent = $('descricao').value.length; }
+
+/* ---- validação do NCM ---- */
+function validarNCM(){
+  const el = $('ncm');
+  el.value = el.value.replace(/\D/g,'').substring(0,8);
+  const ok = el.value === '' || el.value.length === 8;
+  $('erro-ncm').classList.toggle('on', !ok);
+  return ok;
+}
+
+/* ===================== SALVAR / EDITAR ===================== */
+function salvarProduto(){
+  lerPedidoDoForm();
+
+  const bloqueios = [];
+  if (!state.pedido.fornecedor.trim()) bloqueios.push('• Informe o fornecedor (seção 1).');
+  if (!$('segmento').value) bloqueios.push('• Selecione o segmento (seção 2).');
+  if (!validarDatas()) bloqueios.push('• A data final de faturamento é anterior à inicial.');
+  if (bloqueios.length) { alert('Não foi possível salvar:\n\n' + bloqueios.join('\n')); return; }
+
+  const pp = gradeForm.total();
+  const tp = lojasForm.total();
+  const refForn = $('ref-forn').value.trim();
+
+  const avisos = [];
+  if (pp === 0) avisos.push('• A grade está zerada (0 peças por pack).');
+  if (tp === 0) avisos.push('• Nenhuma loja recebeu packs.');
+  if (!validarNCM() || !$('ncm').value) avisos.push('• NCM ausente ou incompleto (8 dígitos) — obrigatório no TOTVS.');
+  if (parseMoeda($('p-venda').value) == null) avisos.push('• Preço de venda vazio — obrigatório no TOTVS.');
+  if (gradeForm.linhas.some(l => !l.cor.trim() && gradeForm.tamanhos.some(t => l.tam[t] > 0)))
+    avisos.push('• Existe cor com quantidade mas sem nome.');
+  if (refForn && state.produtos.some(p => p.refForn.trim().toLowerCase() === refForn.toLowerCase() && p.id !== editandoId))
+    avisos.push('• Já existe outro produto com a referência "' + refForn + '".');
+  if (avisos.length && !confirm('Atenção:\n\n' + avisos.join('\n') + '\n\nSalvar mesmo assim?')) return;
+
+  const segmento = $('segmento').value;
+  const secao = $('secao').value;
+  const especie = $('especie').value;
+
+  const produto = {
+    id: editandoId != null ? editandoId : state.seq++,
+    refForn,
+    ncm: $('ncm').value.trim(),
+    segmento, segmentoNome: nomeSegmento(segmento),
+    secao, secaoNome: nomeSecao(segmento, secao),
+    especie, especieNome: nomeEspecie(secao, especie),
+    departamento: $('departamento').value,
+    descricao: $('descricao').value.trim(),
+    observacao: $('observacao').value.trim(),
+    marca: $('marca').value,
+    estacao: $('estacao').value,
+    pCompra: parseMoeda($('p-compra').value),
+    pVenda: parseMoeda($('p-venda').value),
+    foto: fotoAtual,
+    tipoGrade: gradeForm.tipo,
+    tamanhos: gradeForm.tamanhos,
+    grade: JSON.parse(JSON.stringify(gradeForm.linhas)),
+    packs: lojasForm.packs,
+  };
+
+  const editou = editandoId != null;
+  if (editou) {
+    const i = state.produtos.findIndex(p => p.id === editandoId);
+    state.produtos[i] = produto;
+  } else {
+    state.produtos.push(produto);
+  }
+
+  editandoId = null;
+  limparFormProduto();
+  atualizarContador();
+  persistirAgora();
+
+  $('btn-salvar-box').style.display = 'none';
+  $('confirmacao-box').style.display = 'block';
+  $('confirmacao-texto').textContent =
+    `Produto ${produto.refForn || 'sem ref.'} ${editou ? 'atualizado' : 'salvo'}! (${state.produtos.length} no pedido)`;
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function limparFormProduto(){
+  CAMPOS_PRODUTO.forEach(id => { $(id).value = ''; });
+  atualizarSecoes();
+  $('markup').value = '';
+  $('packs-todas').value = '';
+  $('erro-ncm').classList.remove('on');
+  atualizarContadorDescricao();
+  removerFoto();
+  gradeForm.setTipo('g1', false);
+  gradeForm.limpar();
+  lojasForm.packs = [];
+  atualizarModoEdicao();
+  atualizarTotaisForm();
+  persistir();
+}
+function novoProdutoLimpo(){
+  $('confirmacao-box').style.display = 'none';
+  $('btn-salvar-box').style.display = 'block';
+}
+function editarProduto(id){
+  const p = state.produtos.find(x => x.id === id);
+  if (!p) return;
+  editandoId = id;
+
+  $('segmento').value = p.segmento;
+  atualizarSecoes(p.secao);
+  atualizarEspecies(p.especie);
+  $('departamento').value = p.departamento || '';
+  $('descricao').value = p.descricao || '';
+  $('ref-forn').value = p.refForn || '';
+  $('ncm').value = p.ncm || '';
+  $('marca').value = p.marca || '';
+  $('estacao').value = p.estacao || '';
+  $('p-compra').value = fmtMoeda(p.pCompra);
+  $('p-venda').value = fmtMoeda(p.pVenda);
+  $('observacao').value = p.observacao || '';
+  calcMarkup();
+  atualizarContadorDescricao();
+
+  fotoAtual = p.foto || null;
+  mostrarFoto(fotoAtual);
+
+  gradeForm.setTipo(p.tipoGrade, false);
+  gradeForm.linhas = JSON.parse(JSON.stringify(p.grade));
+  lojasForm.packs = p.packs;
+
+  atualizarModoEdicao();
+  atualizarTotaisForm();
+  novoProdutoLimpo();
+  showTab('form');
+  window.scrollTo({top:0, behavior:'smooth'});
+  persistir();
+}
+function cancelarEdicao(){
+  editandoId = null;
+  limparFormProduto();
+  toast('Edição cancelada.');
+}
+function atualizarModoEdicao(){
+  const editando = editandoId != null;
+  $('banner-edicao').style.display = editando ? 'block' : 'none';
+  $('btn-salvar-texto').textContent = editando ? 'Salvar alterações' : 'Salvar produto';
+  if (editando) {
+    const p = state.produtos.find(x => x.id === editandoId);
+    $('banner-edicao-texto').textContent = 'Editando: ' + (p?.refForn || 'produto sem referência');
+  }
+  renderLista();
+}
+function duplicarProduto(id){
+  const p = state.produtos.find(x => x.id === id);
+  if (!p) return;
+  const copia = JSON.parse(JSON.stringify(p));
+  copia.id = state.seq++;
+  copia.refForn = p.refForn ? p.refForn + '-COPIA' : '';
+  state.produtos.push(copia);
+  atualizarContador();
+  persistirAgora();
+  toast('Produto duplicado.');
+}
+function removerProduto(id){
+  const p = state.produtos.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`Remover o produto ${p.refForn || 'sem ref.'} do pedido?`)) return;
+  state.produtos = state.produtos.filter(x => x.id !== id);
+  if (editandoId === id) { editandoId = null; limparFormProduto(); }
+  atualizarContador();
+  persistirAgora();
+  toast('Produto removido.');
+}
+function novoPedido(){
+  if (!confirm('Isto apaga TODOS os produtos e os dados do pedido deste navegador.\n\nDeseja continuar?')) return;
+  if (state.produtos.length && !confirm('Confirma? Os ' + state.produtos.length + ' produtos serão perdidos.\nDica: baixe o backup .json antes.')) return;
+  state.produtos = [];
+  state.seq = 1;
+  Object.keys(state.pedido).forEach(k => state.pedido[k] = '');
+  editandoId = null;
+  aplicarPedidoNoForm();
+  limparFormProduto();
+  atualizarContador();
+  limparStorage();
+  avisouQuota = false;
+  novoProdutoLimpo();
+  showTab('form');
+  toast('Novo pedido iniciado.');
+}
+
+/* ===================== LISTA ===================== */
+function atualizarContador(){
+  const n = state.produtos.length;
+  $('contador-badge').textContent = n + (n === 1 ? ' produto' : ' produtos');
+  $('qtd-lista').textContent = n;
+  renderLista();
+}
+function renderLista(){
+  const el = $('lista-produtos');
+  const resumo = $('resumo-pedido');
+  if (!state.produtos.length) {
+    el.innerHTML = '<div class="empty-state">Nenhum produto cadastrado ainda.</div>';
+    resumo.style.display = 'none';
+    return;
+  }
+  resumo.style.display = 'grid';
+  $('res-prod').textContent = state.produtos.length;
+  $('res-packs').textContent = state.produtos.reduce((s,p) => s + totalPacks(p), 0);
+  $('res-pecas').textContent = state.produtos.reduce((s,p) => s + totalPecas(p), 0);
+
+  el.innerHTML = state.produtos.map(p => {
+    const alertas = [];
+    if (!p.ncm || p.ncm.length !== 8) alertas.push('NCM');
+    if (p.pVenda == null) alertas.push('P.Venda');
+    if (!GRADES[p.tipoGrade].cdGrade) alertas.push('cód. grade');
+    return `
+    <div class="produto-card${p.id === editandoId ? ' editando' : ''}">
+      ${p.foto
+        ? `<img class="produto-thumb" src="${esc(p.foto)}" alt="Foto do produto ${esc(p.refForn)}" loading="lazy">`
+        : `<div class="produto-thumb-placeholder"><svg class="ic" aria-hidden="true"><use href="#i-shirt"/></svg></div>`}
+      <div class="produto-info">
+        <div class="nome">${esc(p.refForn || 'Sem ref.')}</div>
+        <div class="detalhe">${esc([p.segmentoNome, p.secaoNome, p.especieNome].filter(Boolean).join(' · ') || '—')}</div>
+        <div>
+          <span class="tag tag-grade">${esc(GRADES[p.tipoGrade].nome)}</span>
+          ${p.estacao ? `<span class="tag">${esc(p.estacao)}</span>` : ''}
+          ${p.marca ? `<span class="tag">${esc(p.marca)}</span>` : ''}
+          ${alertas.length ? `<span class="tag tag-alerta">falta ${esc(alertas.join(', '))}</span>` : ''}
+        </div>
+      </div>
+      <div class="produto-pecas">${totalPecas(p)}pç</div>
+      <div class="card-acoes">
+        <button type="button" class="btn-icone" onclick="editarProduto(${p.id})" aria-label="Editar produto ${esc(p.refForn)}"><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg></button>
+        <button type="button" class="btn-icone" onclick="duplicarProduto(${p.id})" aria-label="Duplicar produto ${esc(p.refForn)}"><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg></button>
+        <button type="button" class="btn-icone perigo" onclick="removerProduto(${p.id})" aria-label="Remover produto ${esc(p.refForn)}"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function showTab(tab){
+  const form = tab === 'form';
+  $('view-form').style.display = form ? 'block' : 'none';
+  $('view-lista').style.display = form ? 'none' : 'block';
+  $('tab-form').setAttribute('aria-selected', String(form));
+  $('tab-lista').setAttribute('aria-selected', String(!form));
+  if (form) novoProdutoLimpo();
+}
+
+/* ===================== EXPORTAR CSV (layout GERFP096) ===================== */
+/*
+  Campos texto são higienizados: removemos o separador, quebras de linha e o
+  caractere inicial de fórmula (=, +, @) — proteção contra "CSV injection"
+  quando o arquivo é aberto no Excel.
+*/
+function csvCampo(v){
+  let s = String(v == null ? '' : v);
+  s = s.replace(/[\r\n]+/g,' ').split(CFG.csvSeparador).join(' ').replace(/^[=+@\t]+/,'').trim();
+  return s;
+}
+function csvNumero(n){
+  return (n == null || !Number.isFinite(n)) ? '' : n.toFixed(2).replace('.', CFG.csvDecimal);
+}
+
+function exportarCSV(){
+  if (!state.produtos.length) { alert('Nenhum produto para exportar.'); return; }
+
+  const alertas = [];
+  const conta = (fn) => state.produtos.filter(fn).length;
+  const c1 = conta(p => !GRADES[p.tipoGrade].cdGrade);
+  if (c1) alertas.push(`• ${c1} produto(s) com grade sem código TOTVS (CD_GRADE ficará vazio)`);
+  const c2 = conta(p => !p.ncm || p.ncm.length !== 8);
+  if (c2) alertas.push(`• ${c2} produto(s) sem NCM válido (8 dígitos) — obrigatório no TOTVS`);
+  const c3 = conta(p => p.pVenda == null);
+  if (c3) alertas.push(`• ${c3} produto(s) sem preço de venda — obrigatório no TOTVS`);
+  const c4 = conta(p => !p.descricao);
+  if (c4) alertas.push(`• ${c4} produto(s) sem descrição — será usado o nome da espécie`);
+  const c5 = conta(p => p.grade.some(r => !r.cor.trim() && p.tamanhos.some(t => r.tam[t] > 0)));
+  if (c5) alertas.push(`• ${c5} produto(s) com cor sem nome (CD_COR ficará vazio)`);
+  const c6 = conta(p => pecasPorPack(p) === 0);
+  if (c6) alertas.push(`• ${c6} produto(s) com grade zerada — não geram nenhuma linha no CSV`);
+  if (alertas.length && !confirm('Atenção — verifique antes de importar:\n\n' + alertas.join('\n') + '\n\nExportar mesmo assim?')) return;
+
+  const header = [
+    'CD_MASCARA','CD_GRUPO1','DS_GRUPO1','CD_PRODUTO','DS_PRODUTO',
+    'CD_NCM','CD_ESPECIE','CD_CST','QT_PESO','CD_GRADE',
+    'CD_COR','DS_TAMANHO','IN_PRODPROPRIA','IN_PRODACABADO',
+    'IN_MATPRIMA','IN_MATCONSUMO','IN_PRODTERCEIRO',
+    'CD_EMPVALOR1','TP_VALOR1','CD_VALOR1','VL_PRODUTO1',
+    'CD_BARRA','IN_CADASTRARCLAS','CD_TIPOCLAS1','CD_CLASSIFICACAO1',
+    'NR_CNPJFORNECEDOR','CD_ANTERIOR','CD_COMPOSICAO','CD_CAMPOADIC1','DS_CAMPOADIC1',
+  ];
+  const linhas = [header];
+
+  state.produtos.forEach(p => {
+    const cdGrupo1 = csvCampo(p.especie).substring(0,10);
+    const dsGrupo1 = csvCampo([p.especieNome, p.departamento].filter(Boolean).join(' - ')).substring(0,40);
+    const dsProduto = csvCampo(p.descricao || p.especieNome || p.secaoNome || 'PRODUTO').substring(0,60);
+    const cdGrade = GRADES[p.tipoGrade].cdGrade || '';
+
+    p.grade.forEach(linha => {
+      const cdCor = csvCampo(linha.cor).substring(0,10);
+      p.tamanhos.forEach(tam => {
+        if (!(linha.tam[tam] > 0)) return;   // só SKUs efetivamente pedidos
+        linhas.push([
+          '1',                        // CD_MASCARA        máscara do PRDFM018
+          cdGrupo1,                   // CD_GRUPO1         código da espécie
+          dsGrupo1,                   // DS_GRUPO1         espécie - departamento
+          '',                         // CD_PRODUTO        gerado pelo TOTVS
+          dsProduto,                  // DS_PRODUTO        obrigatório
+          csvCampo(p.ncm),            // CD_NCM            FISFL008
+          'PC',                       // CD_ESPECIE        peça
+          '2',                        // CD_CST
+          '',                         // QT_PESO
+          cdGrade,                    // CD_GRADE          PRDFM008
+          cdCor,                      // CD_COR            PRDFL025 (10 chars)
+          csvCampo(tam).substring(0,10), // DS_TAMANHO
+          'T','T','F','F','F',        // flags de tipo de produto
+          '999',                      // CD_EMPVALOR1
+          'P',                        // TP_VALOR1
+          '1',                        // CD_VALOR1         PRDFL003
+          csvNumero(p.pVenda),        // VL_PRODUTO1
+          '', '', '', '', '',         // CD_BARRA .. NR_CNPJFORNECEDOR
+          '',                         // CD_ANTERIOR       numérico — mantido vazio
+          '',                         // CD_COMPOSICAO
+          '',                         // CD_CAMPOADIC1
+          csvCampo(p.refForn),        // DS_CAMPOADIC1     ref. do fornecedor
+        ]);
+      });
+    });
+  });
+
+  if (linhas.length === 1) { alert('Nenhuma linha gerada: todas as grades estão zeradas.'); return; }
+
+  const csv = linhas.map(r => r.join(CFG.csvSeparador)).join(CFG.csvQuebraLinha) + CFG.csvQuebraLinha;
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
+  baixarArquivo(blob, `GERFP096_${nomeArquivo(state.pedido.fornecedor)}_${nomeArquivo(new Date().toLocaleDateString('pt-BR'))}.csv`);
+  toast(`CSV gerado com ${linhas.length - 1} linha(s).`);
+}
+
+/* ===================== EXPORTAR PDF ===================== */
+function exportarPDF(){
+  if (!state.produtos.length) { alert('Nenhum produto para exportar.'); return; }
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('A biblioteca de PDF não foi carregada.\nVerifique a conexão com a internet e recarregue a página.\n\nO CSV e o backup .json continuam funcionando offline.');
+    return;
+  }
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+  if (typeof doc.autoTable !== 'function') {
+    alert('O complemento de tabelas do PDF não carregou. Recarregue a página com internet disponível.');
+    return;
+  }
+
+  const LARG = 297, ALT = 210, MARG = 10, FIM = ALT - 16;
+  const fornecedor = state.pedido.fornecedor || 'Fornecedor';
+  const emissao = new Date().toLocaleDateString('pt-BR');
+
+  function cabecalho(){
+    doc.setFillColor(31,56,100); doc.rect(0, 0, LARG, 22, 'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(14); doc.setFont(undefined,'bold');
+    doc.text('LOJAS EMMANUELLE', MARG, 12);
+    doc.setFontSize(9); doc.setFont(undefined,'normal');
+    doc.text('Pedido de Compras — Fornecedor: ' + fornecedor, MARG, 19);
+    doc.text('Emissão: ' + emissao, 210, 12);
+    doc.setFontSize(8);
+    const fat = `Faturamento: ${fmtData(state.pedido.dtIni) || '-'} → ${fmtData(state.pedido.dtFim) || '-'}`;
+    const extra = [state.pedido.prazo ? `Prazo: ${state.pedido.prazo}d` : '',
+                   state.pedido.frete ? `Frete: ${state.pedido.frete}` : '',
+                   state.pedido.comissao ? `Com.: ${state.pedido.comissao}%` : ''].filter(Boolean).join('  |  ');
+    doc.text(fat + (extra ? '  |  ' + extra : ''), 210, 19);
+    return 28;
+  }
+  function novaPagina(){ doc.addPage(); return cabecalho(); }
+
+  let y = cabecalho();
+
+  state.produtos.forEach((p, idx) => {
+    const temFoto = !!(p.foto && p.foto.startsWith('data:image/'));
+    const fotoW = 42, fotoH = 42;
+    const cX = temFoto ? MARG + fotoW + 5 : MARG;
+    const cW = LARG - cX - MARG;
+
+    doc.setFontSize(7.5);
+    const linhasDesc = p.descricao ? doc.splitTextToSize('Descrição: ' + p.descricao, cW - 6) : [];
+    const linhasObs  = p.observacao ? doc.splitTextToSize('Obs: ' + p.observacao, cW - 6) : [];
+    const hDesc = linhasDesc.length ? linhasDesc.length * 3.6 + 3 : 0;
+    const hObs  = linhasObs.length  ? linhasObs.length  * 3.6 + 3 : 0;
+
+    const lojasComPack = p.packs.map((n,i) => ({...LOJAS[i], packs:n})).filter(l => l.packs > 0);
+    const nLinhasTab = Math.max(p.grade.length, lojasComPack.length + 1);
+    const hTabelas = 7 + nLinhasTab * 5.8 + 3;
+    const hConteudo = 8 + 7 + hDesc + hObs + hTabelas;
+    const hBloco = Math.max(hConteudo, temFoto ? fotoH : 0) + 6;
+
+    if (y + hBloco > FIM) y = novaPagina();
+    const yTopo = y;
+
+    if (temFoto) {
+      try {
+        doc.addImage(p.foto, 'JPEG', MARG, y, fotoW, fotoH);
+        doc.setDrawColor(210,210,210); doc.rect(MARG, y, fotoW, fotoH);
+      } catch (e) { /* imagem inválida: segue sem ela */ }
+    }
+
+    // barra de identificação
+    doc.setFillColor(47,84,150); doc.rect(cX, y, cW, 7, 'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(8.5); doc.setFont(undefined,'bold');
+    const ref = [
+      'Ref: ' + (p.refForn || '-'), p.segmentoNome || '-', p.secaoNome || '-',
+      p.especieNome || '-', p.marca || '-', p.estacao || '-',
+    ].join('  |  ');
+    doc.text(doc.splitTextToSize(ref, cW - 4)[0], cX + 2, y + 4.8);
+    y += 8;
+
+    // linha técnica
+    doc.setTextColor(50,50,50); doc.setFontSize(7.5); doc.setFont(undefined,'normal');
+    const info = [
+      'Grade: ' + GRADES[p.tipoGrade].nome,
+      'Dep.: ' + (p.departamento || '-'),
+      'Mat.: ' + (state.pedido.materiaPrima || '-'),
+      'NCM: ' + (p.ncm || '-'),
+      'P.Compra: R$ ' + (fmtMoeda(p.pCompra) || '-'),
+      'P.Venda: R$ ' + (fmtMoeda(p.pVenda) || '-'),
+      'Markup: ' + (markupDe(p) || '-'),
+    ].join('  |  ');
+    doc.text(doc.splitTextToSize(info, cW - 2)[0], cX + 1, y + 4);
+    y += 7;
+
+    if (linhasDesc.length) {
+      doc.setFillColor(240,244,252); doc.rect(cX, y, cW, hDesc - 1, 'F');
+      doc.setFillColor(47,84,150); doc.rect(cX, y, 1.5, hDesc - 1, 'F');
+      doc.setTextColor(31,56,100); doc.setFontSize(7.5);
+      doc.text(linhasDesc, cX + 4, y + 4);
+      y += hDesc;
+    }
+    if (linhasObs.length) {
+      doc.setFillColor(255,251,235); doc.rect(cX, y, cW, hObs - 1, 'F');
+      doc.setFillColor(245,158,11); doc.rect(cX, y, 1.5, hObs - 1, 'F');
+      doc.setTextColor(146,64,14); doc.setFontSize(7.5);
+      doc.text(linhasObs, cX + 4, y + 4);
+      y += hObs;
+    }
+
+    // tabela de grade
+    const larguraGrade = Math.min(140, cW * 0.58);
+    doc.autoTable({
+      startY: y,
+      head: [['Cor', ...p.tamanhos, 'Total']],
+      body: p.grade.map(r => [
+        r.cor || '-',
+        ...p.tamanhos.map(t => r.tam[t] || 0),
+        p.tamanhos.reduce((s,t) => s + (r.tam[t] || 0), 0),
+      ]),
+      margin: {left: cX},
+      tableWidth: larguraGrade,
+      headStyles: {fillColor:[31,56,100], fontSize:7.5, halign:'center'},
+      bodyStyles: {fontSize:7.5, halign:'center', cellPadding:1.2},
+      columnStyles: {0:{halign:'left', cellWidth:24}},
+      theme: 'grid',
+    });
+    const fimGrade = doc.lastAutoTable.finalY;
+
+    // tabela de lojas
+    const corpoLojas = lojasComPack.map(l => [l.cod + ' - ' + l.nome, l.packs, l.packs * pecasPorPack(p)]);
+    corpoLojas.push(['TOTAL', totalPacks(p), totalPecas(p)]);
+    doc.autoTable({
+      startY: y,
+      head: [['Loja','Packs','Total pç']],
+      body: corpoLojas,
+      margin: {left: cX + larguraGrade + 4},
+      tableWidth: Math.max(60, cW - larguraGrade - 4),
+      headStyles: {fillColor:[15,110,86], fontSize:7.5, halign:'center'},
+      bodyStyles: {fontSize:7.5, halign:'center', cellPadding:1.2},
+      columnStyles: {0:{halign:'left', cellWidth:30}},
+      theme: 'grid',
+      didParseCell: (d) => {
+        if (d.section === 'body' && d.row.index === corpoLojas.length - 1) {
+          d.cell.styles.fontStyle = 'bold';
+          d.cell.styles.fillColor = [225,228,234];
+        }
+      },
+    });
+
+    y = Math.max(fimGrade, doc.lastAutoTable.finalY, temFoto ? yTopo + fotoH : 0) + 5;
+
+    if (idx < state.produtos.length - 1) {
+      if (y + 6 > FIM) { y = novaPagina(); }
+      else { doc.setDrawColor(200,200,200); doc.line(MARG, y, LARG - MARG, y); y += 5; }
+    }
+  });
+
+  // rodapé com totais
+  if (y + 10 > FIM) y = novaPagina();
+  const tp = state.produtos.reduce((s,p) => s + totalPacks(p), 0);
+  const tpc = state.produtos.reduce((s,p) => s + totalPecas(p), 0);
+  const valor = state.produtos.reduce((s,p) => s + (p.pCompra || 0) * totalPecas(p), 0);
+  doc.setFillColor(31,56,100); doc.rect(MARG, y, LARG - MARG * 2, 8, 'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont(undefined,'bold');
+  doc.text(`TOTAL DO PEDIDO: ${state.produtos.length} produto(s)  |  ${tp} packs  |  ${tpc} peças` +
+           (valor > 0 ? `  |  Valor de compra estimado: R$ ${fmtMoeda(valor)}` : ''), MARG + 3, y + 5.5);
+
+  // numeração de páginas
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    doc.setTextColor(130,130,130); doc.setFontSize(7.5); doc.setFont(undefined,'normal');
+    doc.text(`Página ${i} de ${total}`, LARG - MARG, ALT - 6, {align:'right'});
+  }
+
+  doc.save(`pedido_${nomeArquivo(fornecedor)}_${nomeArquivo(emissao)}.pdf`);
+  toast('PDF gerado.');
+}
+
+/* ===================== BACKUP JSON ===================== */
+function exportarBackup(){
+  const dados = {app:'cadastro-produtos-emmanuelle', versao:2, exportadoEm:new Date().toISOString(),
+                 pedido:state.pedido, produtos:state.produtos, seq:state.seq};
+  const blob = new Blob([JSON.stringify(dados, null, 2)], {type:'application/json'});
+  baixarArquivo(blob, `backup_${nomeArquivo(state.pedido.fornecedor)}_${nomeArquivo(new Date().toLocaleDateString('pt-BR'))}.json`);
+  toast('Backup baixado.');
+}
+function importarBackup(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    let dados;
+    try { dados = JSON.parse(String(reader.result)); }
+    catch (e) { alert('Arquivo inválido: não é um JSON válido.'); return; }
+    if (!dados || !Array.isArray(dados.produtos)) { alert('Arquivo inválido: não contém uma lista de produtos.'); return; }
+    if (state.produtos.length && !confirm('Isto substitui o pedido atual (' + state.produtos.length + ' produtos). Continuar?')) return;
+
+    state.pedido = Object.assign({dtIni:'',dtFim:'',prazo:'',comissao:'',fornecedor:'',frete:'',materiaPrima:''}, dados.pedido || {});
+    state.produtos = dados.produtos.map(normalizarProduto).filter(Boolean);
+    state.seq = Math.max(Number(dados.seq) || 1, state.produtos.reduce((m,p) => Math.max(m, p.id), 0) + 1);
+    editandoId = null;
+    aplicarPedidoNoForm();
+    limparFormProduto();
+    atualizarContador();
+    persistirAgora();
+    toast(`Backup restaurado: ${state.produtos.length} produto(s).`);
+  };
+  reader.onerror = () => alert('Não foi possível ler o arquivo.');
+  reader.readAsText(file);
+}
+
+/* ===================== INICIALIZAÇÃO ===================== */
+function medirHeader(){
+  document.documentElement.style.setProperty('--h-header', $('app-header').offsetHeight + 'px');
+}
+
+function init(){
+  // selects montados a partir das constantes (fonte única de verdade)
+  preencherSelect($('segmento'), SEGMENTOS, 'Selecione');
+  preencherSelect($('departamento'), DEPARTAMENTOS, 'Selecione');
+  preencherSelect($('marca'), MARCAS, 'Selecione');
+  preencherSelect($('estacao'), ESTACOES, 'Selecione');
+  atualizarSecoes();
+
+  gradeForm = criarEditorGrade({
+    select: $('grade-tipo-select'), badge: $('grade-info-badge'),
+    tabela: $('grade-tabela'), onChange: aoMudarForm,
+  });
+  lojasForm = criarEditorLojas({
+    container: $('lojas-container'), pecasPorPack: () => gradeForm.total(), onChange: aoMudarForm,
+  });
+  gradeForm.setTipo('g1', false);
+
+  // eventos do cabeçalho do pedido
+  Object.keys(CAMPOS_PEDIDO).forEach(id => {
+    const aoAlterarPedido = () => { lerPedidoDoForm(); validarDatas(); persistirDados(); };
+    $(id).addEventListener('input', aoAlterarPedido);
+    $(id).addEventListener('change', aoAlterarPedido);
+  });
+
+  // eventos do produto
+  $('segmento').addEventListener('change', () => { atualizarSecoes(); persistir(); });
+  $('secao').addEventListener('change', () => { atualizarEspecies(); persistir(); });
+  CAMPOS_PRODUTO.forEach(id => {
+    $(id).addEventListener('input', persistir);
+    $(id).addEventListener('change', persistir);
+  });
+  $('descricao').addEventListener('input', atualizarContadorDescricao);
+  $('ncm').addEventListener('input', validarNCM);
+  ['p-compra','p-venda'].forEach(id => {
+    $(id).addEventListener('input', calcMarkup);
+    $(id).addEventListener('blur', () => {
+      const n = parseMoeda($(id).value);
+      $(id).value = fmtMoeda(n);
+      calcMarkup(); persistir();
+    });
+  });
+  ['input-camera','input-galeria','input-arquivo'].forEach(id => {
+    $(id).addEventListener('change', (e) => aoEscolherFoto(e.target));
+  });
+  $('input-backup').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (f) importarBackup(f);
+  });
+
+  // restaura sessão anterior
+  const tinha = restaurar();
+  atualizarContador();
+  atualizarTotaisForm();
+  atualizarModoEdicao();
+  if (tinha && state.produtos.length) toast(`Pedido recuperado: ${state.produtos.length} produto(s).`);
+
+  medirHeader();
+  window.addEventListener('resize', medirHeader);
+
+  // grava imediatamente ao sair/minimizar (o debounce pode não completar)
+  window.addEventListener('pagehide', persistirAgora);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) persistirAgora(); });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
