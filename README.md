@@ -56,7 +56,8 @@ Tudo que muda com frequência está no topo do `<script>`, em constantes:
 | `CFG` | chaves de armazenamento, tamanho/qualidade da foto, separador e decimal do CSV |
 | `GRADES` | grades de tamanho e o respectivo `CD_GRADE` do TOTVS |
 | `SEGMENTOS`, `SECOES`, `ESPECIES` | classificação em cascata |
-| `DEPARTAMENTOS`, `MARCAS`, `ESTACOES` | opções dos selects (montados por JS, sem duplicação no HTML) |
+| `DEPARTAMENTOS` | departamentos com o código do TOTVS (3 dígitos, `001` a `007`) |
+| `MARCAS`, `ESTACOES` | opções dos selects — ainda **sem** o código do TOTVS |
 | `LOJAS` | código e nome das lojas da distribuição |
 
 Depois de alterar o `index.html` e enviar para a `main`, o site se atualiza sozinho.
@@ -243,7 +244,7 @@ Apurado conferindo um produto importado no TOTVS — o cadastro entra, mas incom
 
 | Falta | Campos do layout | O que falta descobrir |
 |---|---|---|
-| Os 6 níveis do grupo (SEGMENTO · SECAO · ESPECIE · DEPARTAMENTO · DESCRICAO · REFERENCIA) | `CD_GRUPO1..6` / `DS_GRUPO1..6` | hoje vai só o código da espécie em `CD_GRUPO1`; faltam os códigos que o TOTVS espera nos níveis Departamento, Descrição e Referência |
+| Os 6 níveis do grupo (SEGMENTO · SECAO · ESPECIE · DEPARTAMENTO · DESCRICAO · REFERENCIA) | `CD_GRUPO1..6` / `DS_GRUPO1..6` | hoje vai só o código da espécie em `CD_GRUPO1`; falta saber os códigos dos níveis 4, 5 e 6 (o do nível pode diferir do da classificação) |
 | Classificações (PRDFM308: tipos 100 SEGMENTO, 101 SECAO, 102 ESPECIE, 103 DEPARTAMENTO, 105 MARCA, 106 ESTACAO) | `IN_CADASTRARCLAS`, `CD_TIPOCLAS1..`, `CD_CLASSIFICACAO1..` | os códigos de classificação do PRDFL012 para cada marca, estação, departamento etc. |
 
 ### O que o CSV não cobre

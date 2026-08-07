@@ -531,7 +531,20 @@ const SEGMENTOS = [
   {cod:'300', nome:'INFANTIL'},
 ];
 
-const DEPARTAMENTOS = ['JOVEM','PLUS SIZE','CONTEMPORÂNEO','1º PASSOS - 1/2/3','INFANTIL','JUVENIL'];
+/* Departamentos como estão no TOTVS (classificação tipo 103, PRDFL012).
+   O código tem 3 dígitos com zero à esquerda — 001, não 1. A planilha em
+   Excel mostrava "1" porque a célula era numérica e o Excel come o zero.
+   999 IMPORTACAO fica de fora a pedido do usuário. */
+const DEPARTAMENTOS = [
+  {cod:'001', nome:'JOVEM'},
+  {cod:'002', nome:'PLUS SIZE'},
+  {cod:'003', nome:'CONTEMPORANEO'},
+  {cod:'004', nome:'PRIMEIROS PASSOS - 1/2/3'},
+  {cod:'005', nome:'INFANTIL'},
+  {cod:'006', nome:'JUVENIL'},
+  {cod:'007', nome:'BEBE'},
+];
+const nomeDepartamento = (cod) => DEPARTAMENTOS.find(d => d.cod === cod)?.nome || '';
 const MARCAS = ['ALTERNATIVA','DI VANUCCI','ATRIUM','MILK AND HONEY','BZK BABY','BZK PRIMEIROS PASSOS','BZK KIDS','BZK TEENS'];
 const ESTACOES = ['VERÃO 26','INVERNO 26','VERÃO 27','INVERNO 27'];
 
@@ -3116,7 +3129,15 @@ function normalizarProduto(p){
     segmento: String(p.segmento || ''), segmentoNome: String(p.segmentoNome || ''),
     secao: String(p.secao || ''), secaoNome: String(p.secaoNome || ''),
     especie: String(p.especie || ''), especieNome: String(p.especieNome || ''),
-    departamento: String(p.departamento || ''),
+    departamento: (() => {
+      const v = String(p.departamento || '');
+      if (!v) return '';
+      if (DEPARTAMENTOS.some(d => d.cod === v)) return v;
+      // versões antigas guardavam o nome digitado; tenta casar com a lista atual
+      const alvo = v.toUpperCase().replace(/[ÂÀÁÃ]/g,'A').replace(/º/g,'');
+      return DEPARTAMENTOS.find(d => d.nome.replace(/º/g,'') === alvo)?.cod
+          || (alvo.includes('PASSOS') ? '004' : '');
+    })(),
     descricao: String(p.descricao || ''),
     observacao: String(p.observacao || ''),
     marca: String(p.marca || ''), estacao: String(p.estacao || ''),
@@ -3706,6 +3727,7 @@ function salvarProduto(){
     secao, secaoNome: nomeSecao(segmento, secao),
     especie, especieNome: nomeEspecie(secao, especie),
     departamento: $('departamento').value,
+    departamentoNome: nomeDepartamento($('departamento').value),
     descricao: $('descricao').value.trim(),
     observacao: $('observacao').value.trim(),
     marca: $('marca').value,
@@ -3969,7 +3991,7 @@ function exportarCSV(){
 
   state.produtos.forEach(p => {
     const cdGrupo1 = csvCampo(p.especie).substring(0,10);
-    const dsGrupo1 = csvCampo([p.especieNome, p.departamento].filter(Boolean).join(' - ')).substring(0,40);
+    const dsGrupo1 = csvCampo([p.especieNome, nomeDepartamento(p.departamento)].filter(Boolean).join(' - ')).substring(0,40);
     const dsProduto = csvCampo(p.descricao || p.especieNome || p.secaoNome || 'PRODUTO').substring(0,60);
     const cdGrade = GRADES[p.tipoGrade].cdGrade || '';
 
@@ -4109,7 +4131,7 @@ function exportarPDF(){
     doc.setTextColor(50,50,50); doc.setFontSize(7.5); doc.setFont(undefined,'normal');
     const info = [
       'Grade: ' + GRADES[p.tipoGrade].nome,
-      'Dep.: ' + (p.departamento || '-'),
+      'Dep.: ' + (nomeDepartamento(p.departamento) || '-'),
       'Mat.: ' + (state.pedido.materiaPrima || '-'),
       'NCM: ' + (p.ncm || '-'),
       'P.Compra: R$ ' + (fmtMoeda(p.pCompra) || '-'),
