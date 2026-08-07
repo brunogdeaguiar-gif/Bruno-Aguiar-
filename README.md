@@ -220,6 +220,23 @@ O layout não diz se `VL_PRODUTO1` usa vírgula ou ponto. Há um seletor em
 digitado em *Dados do pedido*, validado pelos dígitos verificadores e enviado só com
 os números. O fornecedor precisa já existir como pessoa no TOTVS com esse mesmo CNPJ.
 
+### Valores (PRDFL003)
+
+O layout aceita até 12 conjuntos `CD_EMPVALOR`/`TP_VALOR`/`CD_VALOR`/`VL_PRODUTO`.
+São enviados três, todos na empresa 999:
+
+| Conjunto | Tipo | Código | Origem |
+|---|---|---|---|
+| 1 | `P` Preço | 1 — VENDA | P. Venda |
+| 2 | `C` Custo | 2 — ULTIMA COMPRA | P. Compra |
+| 3 | `C` Custo | 7 — CUSTO NEGOCIADO | P. Compra |
+
+Sem P. Compra preenchido, os conjuntos 2 e 3 saem inteiramente vazios — mandar só
+parte deles faria o TOTVS reclamar de valor obrigatório em branco. A exportação avisa.
+
+O `TP_VALOR` de custo (`C`) foi deduzido da coluna "Tipo" do PRDFM236; se o TOTVS
+recusar, é o primeiro lugar a conferir (`CFG.tpValorCusto`).
+
 ### Ainda não implementado
 
 Apurado conferindo um produto importado no TOTVS — o cadastro entra, mas incompleto:
@@ -227,7 +244,6 @@ Apurado conferindo um produto importado no TOTVS — o cadastro entra, mas incom
 | Falta | Campos do layout | O que falta descobrir |
 |---|---|---|
 | Os 6 níveis do grupo (SEGMENTO · SECAO · ESPECIE · DEPARTAMENTO · DESCRICAO · REFERENCIA) | `CD_GRUPO1..6` / `DS_GRUPO1..6` | hoje vai só o código da espécie em `CD_GRUPO1`; faltam os códigos que o TOTVS espera nos níveis Departamento, Descrição e Referência |
-| Custo (ULTIMA COMPRA e CUSTO NEGOCIADO no PRDFL003) | `CD_EMPVALOR2..`, `TP_VALOR2..`, `CD_VALOR2..`, `VL_PRODUTO2..` | para quais códigos vai o P. Compra |
 | Classificações (PRDFM308: tipos 100 SEGMENTO, 101 SECAO, 102 ESPECIE, 103 DEPARTAMENTO, 105 MARCA, 106 ESTACAO) | `IN_CADASTRARCLAS`, `CD_TIPOCLAS1..`, `CD_CLASSIFICACAO1..` | os códigos de classificação do PRDFL012 para cada marca, estação, departamento etc. |
 
 ### O que o CSV não cobre
