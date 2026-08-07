@@ -232,16 +232,19 @@ O nível usa o **código curto**, não o composto: a espécie 130530 entra como 
 | 2 SECAO | `CD_GRUPO2` | Seção | `130` CALCA |
 | 3 ESPECIE | `CD_GRUPO3` | Espécie (3 últimos dígitos) | `530` MACACAO CURTO |
 | 4 DEPARTAMENTO | `CD_GRUPO4` | Departamento (mesmo código da classificação) | `001` JOVEM |
-| 5 DESCRICAO | `CD_GRUPO5` | Descrição específica — **nível aberto**, código **sequencial numérico** | sai sem código |
+| 5 DESCRICAO | `CD_GRUPO5` | Código da descrição (campo próprio) + texto da Descrição específica | `016` |
 | 6 REFERENCIA | `CD_GRUPO6` | Ref. fornecedor — **nível aberto** | texto digitado |
 
 Níveis abertos não têm lista cadastrada. No nível 6 o próprio texto vira o código,
 limitado aos 10 caracteres do `CD_GRUPO` — a exportação avisa quando passa disso.
 
-O nível 5 é diferente: o TOTVS espera um **sequencial numérico**, não o texto. O
-sistema não tem como saber qual é o próximo número livre no TOTVS, então o código
-sai vazio e só a descrição é enviada. A exportação avisa. Ver `codigoSequencial`
-em `CFG.niveisGrupo`.
+No nível 5 o código é um **sequencial numérico**, não o texto — por isso existe o
+campo *Código da descrição* no formulário, preenchido consultando o TOTVS.
+
+> **Nenhum nível pode ir vazio.** O TOTVS não guarda lugar em branco: ele pula o
+> nível vazio e o seguinte ocupa a posição. Foi o que aconteceu quando o nível 5 foi
+> enviado sem código — a referência do nível 6 entrou como se fosse a descrição.
+> A exportação avisa quando algum nível está em branco.
 
 Antes desta correção o sistema mandava o código composto (`130530`) no `CD_GRUPO1`,
 e o TOTVS registrava tudo amontoado num nível só.
