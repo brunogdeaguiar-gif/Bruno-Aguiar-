@@ -238,9 +238,8 @@ O nível usa o **código curto**, não o composto: a espécie 130530 entra como 
 Níveis abertos não têm lista cadastrada. No nível 6 o próprio texto vira o código,
 limitado aos 10 caracteres do `CD_GRUPO` — a exportação avisa quando passa disso.
 
-No nível 5 o código não é o texto da descrição — por isso existe o campo
-*Código da descrição* no formulário, preenchido consultando o TOTVS. Aceita
-**letras e números**, até 10 caracteres.
+No nível 5 o código é um **sequencial numérico**, não o texto — por isso existe o
+campo *Código da descrição* no formulário, preenchido consultando o TOTVS.
 
 > **Nenhum nível pode ir vazio.** O TOTVS não guarda lugar em branco: ele pula o
 > nível vazio e o seguinte ocupa a posição. Foi o que aconteceu quando o nível 5 foi
