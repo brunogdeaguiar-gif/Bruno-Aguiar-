@@ -504,9 +504,13 @@ const CFG = {
     {nome: 'SECAO',        origem: 'secao'},
     {nome: 'ESPECIE',      origem: 'especie'},
     {nome: 'DEPARTAMENTO', origem: 'departamento'},
-    // níveis abertos: não têm lista cadastrada, o próprio texto digitado
-    // vira o código do grupo — por isso ficam limitados a 10 caracteres
-    {nome: 'DESCRICAO',    origem: 'descricao', aberto: true},
+    /* DESCRICAO: o código NÃO é o texto — é um sequencial numérico. O
+       sistema não tem como saber qual é o próximo número livre no TOTVS,
+       então o código sai vazio até definirmos de onde ele vem. A descrição
+       segue com o texto digitado. */
+    {nome: 'DESCRICAO',    origem: 'descricao', aberto: true, codigoSequencial: true},
+    /* REFERENCIA: nível aberto em que o próprio texto vira o código,
+       limitado aos 10 caracteres do CD_GRUPO. */
     {nome: 'REFERENCIA',   origem: 'refForn',   aberto: true},
   ],
 
@@ -3973,7 +3977,10 @@ function niveisDoGrupo(p){
   };
   return CFG.niveisGrupo.map(n => {
     const v = de[n.origem] || {cod: '', desc: ''};
-    return {cod: csvCampo(v.cod).substring(0,10), desc: csvCampo(v.desc).substring(0,40)};
+    return {
+      cod: n.codigoSequencial ? '' : csvCampo(v.cod).substring(0,10),
+      desc: csvCampo(v.desc).substring(0,40),
+    };
   });
 }
 
@@ -3995,11 +4002,17 @@ function exportarCSV(){
   const semNivel = CFG.niveisGrupo.filter(n => !n.origem).map(n => n.nome);
   if (semNivel.length) alertas.push(`• Os níveis ${semNivel.join(', ')} saem vazios — o código deles ainda não foi confirmado no TOTVS`);
   CFG.niveisGrupo.filter(n => n.aberto).forEach(n => {
-    const campo = n.origem === 'descricao' ? 'a descrição específica' : 'a ref. do fornecedor';
-    const q = conta(p => String(n.origem === 'descricao' ? p.descricao : p.refForn || '').trim().length > 10);
-    if (q) alertas.push(`• ${q} produto(s) com ${campo} acima de 10 caracteres — o código do nível ${n.nome} sai cortado`);
-    const vazio = conta(p => !String(n.origem === 'descricao' ? p.descricao : p.refForn || '').trim());
-    if (vazio) alertas.push(`• ${vazio} produto(s) sem ${campo} — o nível ${n.nome} sai vazio`);
+    const ehDesc = n.origem === 'descricao';
+    const campo = ehDesc ? 'a descrição específica' : 'a ref. do fornecedor';
+    const texto = (p) => String((ehDesc ? p.descricao : p.refForn) || '').trim();
+    if (n.codigoSequencial) {
+      alertas.push(`• O nível ${n.nome} vai sem código: o TOTVS espera um sequencial numérico e o sistema não sabe qual é o próximo livre`);
+    } else {
+      const q = conta(p => texto(p).length > 10);
+      if (q) alertas.push(`• ${q} produto(s) com ${campo} acima de 10 caracteres — o código do nível ${n.nome} sai cortado`);
+    }
+    const vazio = conta(p => !texto(p));
+    if (vazio) alertas.push(`• ${vazio} produto(s) sem ${campo} — o nível ${n.nome} sai sem descrição`);
   });
   const c8 = conta(p => !(p.pCompra > 0));
   if (c8) alertas.push(`• ${c8} produto(s) sem preço de compra — entram sem custo (ULTIMA COMPRA e CUSTO NEGOCIADO ficam vazios)`);
