@@ -267,9 +267,9 @@ body{font-family:var(--fonte);background:#F0F2F5;min-height:100vh;color:#111827}
         </div>
         <div class="field">
           <label for="descricao-cod">Código da descrição <span class="obrig">*nível 5 da máscara</span></label>
-          <input type="text" id="descricao-cod" class="campo-obrig" maxlength="10" placeholder="Ex: 016 ou MLISO" autocapitalize="characters">
+          <input type="text" id="descricao-cod" class="campo-obrig" inputmode="numeric" maxlength="10" placeholder="Ex: 001">
           <div class="hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg>
-            Código do nível DESCRICAO no TOTVS — aceita números e letras, até 10 caracteres. Se ficar em branco, o TOTVS pula esse nível e a referência entra no lugar dele.</div>
+            Sequencial numérico do nível DESCRICAO no TOTVS. Se ficar em branco, o TOTVS pula esse nível e a referência entra no lugar dele.</div>
         </div>
       </div>
     </section>
@@ -279,7 +279,7 @@ body{font-family:var(--fonte);background:#F0F2F5;min-height:100vh;color:#111827}
       <h2 class="section-title">3. Dados do produto</h2>
       <div class="fields">
         <div class="row2">
-          <div class="field"><label for="ref-forn">Ref. fornecedor <span class="obrig">*nível 6 da máscara</span></label><input type="text" id="ref-forn" class="campo-obrig" maxlength="30" placeholder="Ex: 46016 ou MC-102" autocapitalize="characters"><div class="hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg> Aceita números e letras. O nível REFERENCIA usa os 10 primeiros caracteres como código.</div></div>
+          <div class="field"><label for="ref-forn">Ref. fornecedor</label><input type="text" id="ref-forn" maxlength="30" placeholder="Ex: 12345"></div>
           <div class="field">
             <label for="ncm">NCM <span class="obrig">*obrigatório TOTVS</span></label>
             <input type="text" id="ncm" class="campo-obrig" inputmode="numeric" maxlength="8" placeholder="00000000">
@@ -503,8 +503,8 @@ const CFG = {
   /* Níveis da máscara do produto (PRDFM018), na ordem das abas do PRDFM236.
      'origem' diz de onde o sistema tira o código de cada nível.
      O nível 4 usa o mesmo código da classificação (001 a 007). Os níveis 5
-     e 6 são abertos. No 5 o código é digitado no formulário e aceita letras
-     e números (o TOTVS NÃO gera sozinho: enviar em branco faz o nível ser
+     e 6 são abertos. No 5 o código é um sequencial numérico digitado no
+     formulário (o TOTVS NÃO gera sozinho: enviar em branco faz o nível ser
      pulado e o seguinte ocupar o lugar). No 6 o próprio texto da referência
      vira o código. */
   niveisGrupo: [
