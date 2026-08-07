@@ -202,7 +202,7 @@ Ficam na constante `CFG`, no topo do `<script>`:
 |---|---|---|
 | `CD_MASCARA` | `1` | PRDFM018 |
 | `CD_ESPECIE` | `PC` | PRDFL005 |
-| `CD_CST` | `2` | — |
+| `CD_CST` | `0` — Nacional | — |
 | `CD_EMPVALOR1` | `999` | empresa |
 | `TP_VALOR1` / `CD_VALOR1` | `P` / `1` | PRDFL003 |
 | `CD_GRADE` | por grade (8, 9, 22, 1, 12, 33, 36, 118, 97) | PRDFM008 |
@@ -231,9 +231,13 @@ O nível usa o **código curto**, não o composto: a espécie 130530 entra como 
 | 1 SEGMENTO | `CD_GRUPO1` | Segmento | `100` FEMININO |
 | 2 SECAO | `CD_GRUPO2` | Seção | `130` CALCA |
 | 3 ESPECIE | `CD_GRUPO3` | Espécie (3 últimos dígitos) | `530` MACACAO CURTO |
-| 4 DEPARTAMENTO | `CD_GRUPO4` | — ainda vazio | |
-| 5 DESCRICAO | `CD_GRUPO5` | — ainda vazio | |
-| 6 REFERENCIA | `CD_GRUPO6` | — ainda vazio | |
+| 4 DEPARTAMENTO | `CD_GRUPO4` | Departamento (mesmo código da classificação) | `001` JOVEM |
+| 5 DESCRICAO | `CD_GRUPO5` | Descrição específica — **nível aberto** | texto digitado |
+| 6 REFERENCIA | `CD_GRUPO6` | Ref. fornecedor — **nível aberto** | texto digitado |
+
+Níveis abertos não têm lista cadastrada: o próprio texto vira o código do grupo, e
+`CD_GRUPO` só aceita 10 caracteres. A exportação avisa quando o texto passa disso
+(o código sai cortado) ou quando está em branco.
 
 Antes desta correção o sistema mandava o código composto (`130530`) no `CD_GRUPO1`,
 e o TOTVS registrava tudo amontoado num nível só.
@@ -261,7 +265,6 @@ Apurado conferindo um produto importado no TOTVS — o cadastro entra, mas incom
 
 | Falta | Campos do layout | O que falta descobrir |
 |---|---|---|
-| Níveis 4 (DEPARTAMENTO), 5 (DESCRICAO) e 6 (REFERENCIA) da máscara | `CD_GRUPO4..6` / `DS_GRUPO4..6` | saem vazios; o código do **nível** pode diferir do da **classificação**, e isso ainda não foi confirmado no TOTVS. Basta preencher `origem` em `CFG.niveisGrupo` |
 | Classificações (PRDFM308: tipos 100 SEGMENTO, 101 SECAO, 102 ESPECIE, 103 DEPARTAMENTO, 105 MARCA, 106 ESTACAO) | `IN_CADASTRARCLAS`, `CD_TIPOCLAS1..`, `CD_CLASSIFICACAO1..` | os códigos de classificação do PRDFL012 para cada marca, estação, departamento etc. |
 
 ### O que o CSV não cobre

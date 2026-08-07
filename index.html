@@ -482,7 +482,7 @@ const CFG = {
      linha. Confira antes de alterar. */
   cdMascara:   '1',    // CD_MASCARA   — máscara cadastrada no PRDFM018
   cdEspecie:   'PC',   // CD_ESPECIE   — espécie cadastrada no PRDFL005
-  cdCst:       '2',    // CD_CST
+  cdCst:       '0',    // CD_CST — 0 = Nacional (era 2, Estrangeira: errado)
   cdEmpValor:  '999',  // CD_EMPVALOR1 — empresa
   tpValor:     'P',    // TP_VALOR1    — tipo do valor no PRDFL003
   cdValor:     '1',    // CD_VALOR1    — código do valor no PRDFL003
@@ -496,16 +496,18 @@ const CFG = {
 
   /* Níveis da máscara do produto (PRDFM018), na ordem das abas do PRDFM236.
      'origem' diz de onde o sistema tira o código de cada nível.
-     DEPARTAMENTO, DESCRICAO e REFERENCIA ainda saem vazios: o código do
-     NÍVEL pode ser diferente do código da CLASSIFICAÇÃO, e isso ainda não
-     foi confirmado no TOTVS. Assim que for, é só preencher 'origem'. */
+     O nível 4 usa o mesmo código da classificação (001 a 007). Os níveis 5
+     e 6 são abertos: recebem o texto digitado em Descrição específica e em
+     Ref. fornecedor. */
   niveisGrupo: [
     {nome: 'SEGMENTO',     origem: 'segmento'},
     {nome: 'SECAO',        origem: 'secao'},
     {nome: 'ESPECIE',      origem: 'especie'},
-    {nome: 'DEPARTAMENTO', origem: ''},
-    {nome: 'DESCRICAO',    origem: ''},
-    {nome: 'REFERENCIA',   origem: ''},
+    {nome: 'DEPARTAMENTO', origem: 'departamento'},
+    // níveis abertos: não têm lista cadastrada, o próprio texto digitado
+    // vira o código do grupo — por isso ficam limitados a 10 caracteres
+    {nome: 'DESCRICAO',    origem: 'descricao', aberto: true},
+    {nome: 'REFERENCIA',   origem: 'refForn',   aberto: true},
   ],
 
   /* Valores do produto (PRDFL003). O layout aceita até 12 conjuntos
@@ -3961,9 +3963,13 @@ function csvNumero(n){
 function niveisDoGrupo(p){
   const de = {
     // o nível usa o código curto: espécie 130530 entra como 530
-    segmento: {cod: p.segmento, desc: p.segmentoNome},
-    secao:    {cod: p.secao,    desc: p.secaoNome},
-    especie:  {cod: String(p.especie || '').slice(3), desc: p.especieNome},
+    segmento:     {cod: p.segmento, desc: p.segmentoNome},
+    secao:        {cod: p.secao,    desc: p.secaoNome},
+    especie:      {cod: String(p.especie || '').slice(3), desc: p.especieNome},
+    departamento: {cod: p.departamento, desc: nomeDepartamento(p.departamento)},
+    // abertos: o texto é ao mesmo tempo código e descrição
+    descricao:    {cod: p.descricao, desc: p.descricao},
+    refForn:      {cod: p.refForn,   desc: p.refForn},
   };
   return CFG.niveisGrupo.map(n => {
     const v = de[n.origem] || {cod: '', desc: ''};
@@ -3988,6 +3994,13 @@ function exportarCSV(){
   if (c5) alertas.push(`• ${c5} produto(s) com cor SEM código do PRDFL025 — o TOTVS vai recusar essas linhas`);
   const semNivel = CFG.niveisGrupo.filter(n => !n.origem).map(n => n.nome);
   if (semNivel.length) alertas.push(`• Os níveis ${semNivel.join(', ')} saem vazios — o código deles ainda não foi confirmado no TOTVS`);
+  CFG.niveisGrupo.filter(n => n.aberto).forEach(n => {
+    const campo = n.origem === 'descricao' ? 'a descrição específica' : 'a ref. do fornecedor';
+    const q = conta(p => String(n.origem === 'descricao' ? p.descricao : p.refForn || '').trim().length > 10);
+    if (q) alertas.push(`• ${q} produto(s) com ${campo} acima de 10 caracteres — o código do nível ${n.nome} sai cortado`);
+    const vazio = conta(p => !String(n.origem === 'descricao' ? p.descricao : p.refForn || '').trim());
+    if (vazio) alertas.push(`• ${vazio} produto(s) sem ${campo} — o nível ${n.nome} sai vazio`);
+  });
   const c8 = conta(p => !(p.pCompra > 0));
   if (c8) alertas.push(`• ${c8} produto(s) sem preço de compra — entram sem custo (ULTIMA COMPRA e CUSTO NEGOCIADO ficam vazios)`);
   const c7 = conta(p => p.grade.some(r => r.corCod && (acharCor(r.corCod)?.dub ?? true) && p.tamanhos.some(t => r.tam[t] > 0)));
