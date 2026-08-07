@@ -494,6 +494,20 @@ const CFG = {
   usarTpItemSped: false,
   tpItemSped:  '',     // valor quando usarTpItemSped = true ('00' = revenda)
 
+  /* Níveis da máscara do produto (PRDFM018), na ordem das abas do PRDFM236.
+     'origem' diz de onde o sistema tira o código de cada nível.
+     DEPARTAMENTO, DESCRICAO e REFERENCIA ainda saem vazios: o código do
+     NÍVEL pode ser diferente do código da CLASSIFICAÇÃO, e isso ainda não
+     foi confirmado no TOTVS. Assim que for, é só preencher 'origem'. */
+  niveisGrupo: [
+    {nome: 'SEGMENTO',     origem: 'segmento'},
+    {nome: 'SECAO',        origem: 'secao'},
+    {nome: 'ESPECIE',      origem: 'especie'},
+    {nome: 'DEPARTAMENTO', origem: ''},
+    {nome: 'DESCRICAO',    origem: ''},
+    {nome: 'REFERENCIA',   origem: ''},
+  ],
+
   /* Valores do produto (PRDFL003). O layout aceita até 12 conjuntos
      CD_EMPVALOR/TP_VALOR/CD_VALOR/VL_PRODUTO. Aqui vão três:
        1 = Preço  / VENDA           -> P. Venda
@@ -3943,6 +3957,20 @@ function csvNumero(n){
   return (n == null || !Number.isFinite(n)) ? '' : n.toFixed(2).replace('.', csvDecimal);
 }
 
+/** Código e descrição de cada nível da máscara, na ordem configurada. */
+function niveisDoGrupo(p){
+  const de = {
+    // o nível usa o código curto: espécie 130530 entra como 530
+    segmento: {cod: p.segmento, desc: p.segmentoNome},
+    secao:    {cod: p.secao,    desc: p.secaoNome},
+    especie:  {cod: String(p.especie || '').slice(3), desc: p.especieNome},
+  };
+  return CFG.niveisGrupo.map(n => {
+    const v = de[n.origem] || {cod: '', desc: ''};
+    return {cod: csvCampo(v.cod).substring(0,10), desc: csvCampo(v.desc).substring(0,40)};
+  });
+}
+
 function exportarCSV(){
   if (!state.produtos.length) { alert('Nenhum produto para exportar.'); return; }
 
@@ -3958,6 +3986,8 @@ function exportarCSV(){
   if (c4) alertas.push(`• ${c4} produto(s) sem descrição — será usado o nome da espécie`);
   const c5 = conta(p => p.grade.some(r => !r.corCod && p.tamanhos.some(t => r.tam[t] > 0)));
   if (c5) alertas.push(`• ${c5} produto(s) com cor SEM código do PRDFL025 — o TOTVS vai recusar essas linhas`);
+  const semNivel = CFG.niveisGrupo.filter(n => !n.origem).map(n => n.nome);
+  if (semNivel.length) alertas.push(`• Os níveis ${semNivel.join(', ')} saem vazios — o código deles ainda não foi confirmado no TOTVS`);
   const c8 = conta(p => !(p.pCompra > 0));
   if (c8) alertas.push(`• ${c8} produto(s) sem preço de compra — entram sem custo (ULTIMA COMPRA e CUSTO NEGOCIADO ficam vazios)`);
   const c7 = conta(p => p.grade.some(r => r.corCod && (acharCor(r.corCod)?.dub ?? true) && p.tamanhos.some(t => r.tam[t] > 0)));
@@ -3986,12 +4016,18 @@ function exportarCSV(){
       const n = i + 2;
       return ['CD_EMPVALOR' + n, 'TP_VALOR' + n, 'CD_VALOR' + n, 'VL_PRODUTO' + n];
     }),
+    // níveis 2 em diante da máscara (o 1 já está na posição fixa acima)
+    ...CFG.niveisGrupo.slice(1).map((_, i) => ['CD_GRUPO' + (i + 2), 'DS_GRUPO' + (i + 2)]).flat(),
   ];
   const linhas = [header];
 
   state.produtos.forEach(p => {
-    const cdGrupo1 = csvCampo(p.especie).substring(0,10);
-    const dsGrupo1 = csvCampo([p.especieNome, nomeDepartamento(p.departamento)].filter(Boolean).join(' - ')).substring(0,40);
+    /* A máscara do PRDFM018 tem 6 níveis: SEGMENTO, SECAO, ESPECIE,
+       DEPARTAMENTO, DESCRICAO e REFERENCIA. Cada um vai num CD_GRUPO
+       próprio, com o código CURTO do nível — a espécie é 530, não 130530.
+       Os níveis 4 a 6 dependem de códigos ainda não confirmados no TOTVS
+       e por isso saem vazios; ver CFG.niveisGrupo. */
+    const niveis = niveisDoGrupo(p);
     const dsProduto = csvCampo(p.descricao || p.especieNome || p.secaoNome || 'PRODUTO').substring(0,60);
     const cdGrade = GRADES[p.tipoGrade].cdGrade || '';
 
@@ -4002,8 +4038,8 @@ function exportarCSV(){
         if (!(linha.tam[tam] > 0)) return;   // só SKUs efetivamente pedidos
         linhas.push([
           CFG.cdMascara,              //  1 CD_MASCARA        máscara do PRDFM018
-          cdGrupo1,                   //  2 CD_GRUPO1         código da espécie
-          dsGrupo1,                   //  3 DS_GRUPO1         espécie - departamento
+          niveis[0].cod,              //  2 CD_GRUPO1         segmento
+          niveis[0].desc,             //  3 DS_GRUPO1
           '',                         //  4 CD_PRODUTO        gerado pelo TOTVS
           dsProduto,                  //  5 DS_PRODUTO        obrigatório
           csvCampo(p.ncm),            //  6 CD_NCM            FISFL008
@@ -4038,6 +4074,7 @@ function exportarCSV(){
           ...CFG.custos.flatMap(c => p.pCompra > 0
             ? [CFG.cdEmpValor, CFG.tpValorCusto, c.cd, csvNumero(p.pCompra)]
             : ['', '', '', '']),
+          ...niveis.slice(1).flatMap(n => [n.cod, n.desc]),
         ]);
       });
     });

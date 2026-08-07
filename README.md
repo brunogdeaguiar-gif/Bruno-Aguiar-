@@ -221,6 +221,23 @@ O layout não diz se `VL_PRODUTO1` usa vírgula ou ponto. Há um seletor em
 digitado em *Dados do pedido*, validado pelos dígitos verificadores e enviado só com
 os números. O fornecedor precisa já existir como pessoa no TOTVS com esse mesmo CNPJ.
 
+### Níveis do grupo (máscara do PRDFM018)
+
+A máscara tem 6 níveis, e cada um vai num `CD_GRUPO`/`DS_GRUPO` próprio.
+O nível usa o **código curto**, não o composto: a espécie 130530 entra como `530`.
+
+| Nível | Campo | Origem | Exemplo |
+|---|---|---|---|
+| 1 SEGMENTO | `CD_GRUPO1` | Segmento | `100` FEMININO |
+| 2 SECAO | `CD_GRUPO2` | Seção | `130` CALCA |
+| 3 ESPECIE | `CD_GRUPO3` | Espécie (3 últimos dígitos) | `530` MACACAO CURTO |
+| 4 DEPARTAMENTO | `CD_GRUPO4` | — ainda vazio | |
+| 5 DESCRICAO | `CD_GRUPO5` | — ainda vazio | |
+| 6 REFERENCIA | `CD_GRUPO6` | — ainda vazio | |
+
+Antes desta correção o sistema mandava o código composto (`130530`) no `CD_GRUPO1`,
+e o TOTVS registrava tudo amontoado num nível só.
+
 ### Valores (PRDFL003)
 
 O layout aceita até 12 conjuntos `CD_EMPVALOR`/`TP_VALOR`/`CD_VALOR`/`VL_PRODUTO`.
@@ -244,7 +261,7 @@ Apurado conferindo um produto importado no TOTVS — o cadastro entra, mas incom
 
 | Falta | Campos do layout | O que falta descobrir |
 |---|---|---|
-| Os 6 níveis do grupo (SEGMENTO · SECAO · ESPECIE · DEPARTAMENTO · DESCRICAO · REFERENCIA) | `CD_GRUPO1..6` / `DS_GRUPO1..6` | hoje vai só o código da espécie em `CD_GRUPO1`; falta saber os códigos dos níveis 4, 5 e 6 (o do nível pode diferir do da classificação) |
+| Níveis 4 (DEPARTAMENTO), 5 (DESCRICAO) e 6 (REFERENCIA) da máscara | `CD_GRUPO4..6` / `DS_GRUPO4..6` | saem vazios; o código do **nível** pode diferir do da **classificação**, e isso ainda não foi confirmado no TOTVS. Basta preencher `origem` em `CFG.niveisGrupo` |
 | Classificações (PRDFM308: tipos 100 SEGMENTO, 101 SECAO, 102 ESPECIE, 103 DEPARTAMENTO, 105 MARCA, 106 ESTACAO) | `IN_CADASTRARCLAS`, `CD_TIPOCLAS1..`, `CD_CLASSIFICACAO1..` | os códigos de classificação do PRDFL012 para cada marca, estação, departamento etc. |
 
 ### O que o CSV não cobre
