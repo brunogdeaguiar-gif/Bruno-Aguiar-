@@ -265,6 +265,12 @@ body{font-family:var(--fonte);background:#F0F2F5;min-height:100vh;color:#111827}
           <input type="text" id="descricao" maxlength="60" placeholder="Ex: com estampa floral, renda na barra...">
           <div class="hint"><span id="cont-descricao">0</span>/60 caracteres — se vazio, o CSV usa o nome da espécie.</div>
         </div>
+        <div class="field">
+          <label for="descricao-cod">Código da descrição <span class="obrig">*nível 5 da máscara</span></label>
+          <input type="text" id="descricao-cod" class="campo-obrig" inputmode="numeric" maxlength="10" placeholder="Ex: 001">
+          <div class="hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg>
+            Sequencial numérico do nível DESCRICAO no TOTVS. Se ficar em branco, o TOTVS pula esse nível e a referência entra no lugar dele.</div>
+        </div>
       </div>
     </section>
 
@@ -497,8 +503,10 @@ const CFG = {
   /* Níveis da máscara do produto (PRDFM018), na ordem das abas do PRDFM236.
      'origem' diz de onde o sistema tira o código de cada nível.
      O nível 4 usa o mesmo código da classificação (001 a 007). Os níveis 5
-     e 6 são abertos: recebem o texto digitado em Descrição específica e em
-     Ref. fornecedor. */
+     e 6 são abertos. No 5 o código é um sequencial numérico digitado no
+     formulário (o TOTVS NÃO gera sozinho: enviar em branco faz o nível ser
+     pulado e o seguinte ocupar o lugar). No 6 o próprio texto da referência
+     vira o código. */
   niveisGrupo: [
     {nome: 'SEGMENTO',     origem: 'segmento'},
     {nome: 'SECAO',        origem: 'secao'},
@@ -508,7 +516,7 @@ const CFG = {
        sistema não tem como saber qual é o próximo número livre no TOTVS,
        então o código sai vazio até definirmos de onde ele vem. A descrição
        segue com o texto digitado. */
-    {nome: 'DESCRICAO',    origem: 'descricao', aberto: true, codigoSequencial: true},
+    {nome: 'DESCRICAO',    origem: 'descricao', aberto: true},
     /* REFERENCIA: nível aberto em que o próprio texto vira o código,
        limitado aos 10 caracteres do CD_GRUPO. */
     {nome: 'REFERENCIA',   origem: 'refForn',   aberto: true},
@@ -3159,6 +3167,7 @@ function normalizarProduto(p){
           || (alvo.includes('PASSOS') ? '004' : '');
     })(),
     descricao: String(p.descricao || ''),
+    descricaoCod: String(p.descricaoCod || ''),
     observacao: String(p.observacao || ''),
     marca: String(p.marca || ''), estacao: String(p.estacao || ''),
     pCompra: (p.pCompra == null || p.pCompra === '') ? null : Number(p.pCompra),
@@ -3663,7 +3672,7 @@ function validarDatas(){
 }
 
 /* ---- rascunho (produto em digitação) ---- */
-const CAMPOS_PRODUTO = ['segmento','secao','especie','departamento','descricao','ref-forn','ncm','marca','estacao','p-compra','p-venda','observacao'];
+const CAMPOS_PRODUTO = ['segmento','secao','especie','departamento','descricao','descricao-cod','ref-forn','ncm','marca','estacao','p-compra','p-venda','observacao'];
 function coletarRascunho(){
   const r = {editandoId, foto: fotoAtual, gradeTipo: gradeForm?.tipo || 'g1',
              linhas: gradeForm ? gradeForm.linhas : [], packs: lojasForm ? lojasForm.packs : []};
@@ -3749,6 +3758,7 @@ function salvarProduto(){
     departamento: $('departamento').value,
     departamentoNome: nomeDepartamento($('departamento').value),
     descricao: $('descricao').value.trim(),
+    descricaoCod: $('descricao-cod').value.trim(),
     observacao: $('observacao').value.trim(),
     marca: $('marca').value,
     estacao: $('estacao').value,
@@ -3810,6 +3820,7 @@ function editarProduto(id){
   atualizarEspecies(p.especie);
   $('departamento').value = p.departamento || '';
   $('descricao').value = p.descricao || '';
+  $('descricao-cod').value = p.descricaoCod || '';
   $('ref-forn').value = p.refForn || '';
   $('ncm').value = p.ncm || '';
   $('marca').value = p.marca || '';
@@ -3971,17 +3982,14 @@ function niveisDoGrupo(p){
     secao:        {cod: p.secao,    desc: p.secaoNome},
     especie:      {cod: String(p.especie || '').slice(3), desc: p.especieNome},
     departamento: {cod: p.departamento, desc: nomeDepartamento(p.departamento)},
-    // abertos: o texto é ao mesmo tempo código e descrição
-    descricao:    {cod: p.descricao, desc: p.descricao},
+    // aberto com código próprio: o sequencial digitado + o texto da descrição
+    descricao:    {cod: p.descricaoCod, desc: p.descricao},
     refForn:      {cod: p.refForn,   desc: p.refForn},
   };
-  return CFG.niveisGrupo.map(n => {
-    const v = de[n.origem] || {cod: '', desc: ''};
-    return {
-      cod: n.codigoSequencial ? '' : csvCampo(v.cod).substring(0,10),
-      desc: csvCampo(v.desc).substring(0,40),
-    };
-  });
+  return CFG.niveisGrupo.map(n => ({
+    cod:  csvCampo((de[n.origem] || {}).cod).substring(0,10),
+    desc: csvCampo((de[n.origem] || {}).desc).substring(0,40),
+  }));
 }
 
 function exportarCSV(){
@@ -4001,19 +4009,12 @@ function exportarCSV(){
   if (c5) alertas.push(`• ${c5} produto(s) com cor SEM código do PRDFL025 — o TOTVS vai recusar essas linhas`);
   const semNivel = CFG.niveisGrupo.filter(n => !n.origem).map(n => n.nome);
   if (semNivel.length) alertas.push(`• Os níveis ${semNivel.join(', ')} saem vazios — o código deles ainda não foi confirmado no TOTVS`);
-  CFG.niveisGrupo.filter(n => n.aberto).forEach(n => {
-    const ehDesc = n.origem === 'descricao';
-    const campo = ehDesc ? 'a descrição específica' : 'a ref. do fornecedor';
-    const texto = (p) => String((ehDesc ? p.descricao : p.refForn) || '').trim();
-    if (n.codigoSequencial) {
-      alertas.push(`• O nível ${n.nome} vai sem código: o TOTVS espera um sequencial numérico e o sistema não sabe qual é o próximo livre`);
-    } else {
-      const q = conta(p => texto(p).length > 10);
-      if (q) alertas.push(`• ${q} produto(s) com ${campo} acima de 10 caracteres — o código do nível ${n.nome} sai cortado`);
-    }
-    const vazio = conta(p => !texto(p));
-    if (vazio) alertas.push(`• ${vazio} produto(s) sem ${campo} — o nível ${n.nome} sai sem descrição`);
-  });
+  const semCodDesc = conta(p => !String(p.descricaoCod || '').trim());
+  if (semCodDesc) alertas.push(`• ${semCodDesc} produto(s) sem código da descrição — o TOTVS PULA o nível 5 e a referência entra no lugar dele`);
+  const refLonga = conta(p => String(p.refForn || '').trim().length > 10);
+  if (refLonga) alertas.push(`• ${refLonga} produto(s) com ref. do fornecedor acima de 10 caracteres — o código do nível REFERENCIA sai cortado`);
+  const semRef = conta(p => !String(p.refForn || '').trim());
+  if (semRef) alertas.push(`• ${semRef} produto(s) sem ref. do fornecedor — o nível REFERENCIA sai vazio`);
   const c8 = conta(p => !(p.pCompra > 0));
   if (c8) alertas.push(`• ${c8} produto(s) sem preço de compra — entram sem custo (ULTIMA COMPRA e CUSTO NEGOCIADO ficam vazios)`);
   const c7 = conta(p => p.grade.some(r => r.corCod && (acharCor(r.corCod)?.dub ?? true) && p.tamanhos.some(t => r.tam[t] > 0)));
