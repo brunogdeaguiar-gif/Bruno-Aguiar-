@@ -59,6 +59,8 @@ Tudo que muda com frequência está no topo do `<script>`, em constantes:
 | `DEPARTAMENTOS` | departamentos com o código do TOTVS (3 dígitos, `001` a `007`) |
 | `MARCAS`, `ESTACOES` | opções dos selects — ainda **sem** o código do TOTVS |
 | `LOJAS` | código e nome das lojas da distribuição |
+| `CORES_PADRAO` | lista de cores do PRDFL025 (código + nome), substituível pela tela |
+| `DESCRICOES_PADRAO` | lista de descrições padronizadas do nível 5 (código de 4 dígitos + texto) |
 
 Depois de alterar o `index.html` e enviar para a `main`, o site se atualiza sozinho.
 
@@ -232,14 +234,14 @@ O nível usa o **código curto**, não o composto: a espécie 130530 entra como 
 | 2 SECAO | `CD_GRUPO2` | Seção | `130` CALCA |
 | 3 ESPECIE | `CD_GRUPO3` | Espécie (3 últimos dígitos) | `530` MACACAO CURTO |
 | 4 DEPARTAMENTO | `CD_GRUPO4` | Departamento (mesmo código da classificação) | `001` JOVEM |
-| 5 DESCRICAO | `CD_GRUPO5` | Código da descrição (campo próprio) + texto da Descrição específica | `016` |
+| 5 DESCRICAO | `CD_GRUPO5` | Descrição padronizada escolhida na lista (código + texto juntos) | `0207` BOLSO E CAPUZ BICOLOR |
 | 6 REFERENCIA | `CD_GRUPO6` | Ref. fornecedor — **nível aberto** | texto digitado |
 
 Níveis abertos não têm lista cadastrada. No nível 6 o próprio texto vira o código,
 limitado aos 10 caracteres do `CD_GRUPO` — a exportação avisa quando passa disso.
 
-No nível 5 o código é um **sequencial numérico**, não o texto — por isso existe o
-campo *Código da descrição* no formulário, preenchido consultando o TOTVS.
+No nível 5 o código é um **sequencial numérico**, não o texto. Ele vem da lista
+padronizada de descrições — ver a seção abaixo.
 
 > **Nenhum nível pode ir vazio.** O TOTVS não guarda lugar em branco: ele pula o
 > nível vazio e o seguinte ocupa a posição. Foi o que aconteceu quando o nível 5 foi
@@ -248,6 +250,25 @@ campo *Código da descrição* no formulário, preenchido consultando o TOTVS.
 
 Antes desta correção o sistema mandava o código composto (`130530`) no `CD_GRUPO1`,
 e o TOTVS registrava tudo amontoado num nível só.
+
+### Descrições padronizadas (nível 5)
+
+A descrição do nível 5 deixou de ser texto livre: escolhe-se numa lista padronizada de
+**1.154 descrições**, cada uma com um código sequencial de 4 dígitos (`0001 = 1 BOTAO`).
+Escolher na lista preenche o código e o texto de uma vez — que é justamente o que evita
+o nível vazio que fazia a referência subir para a posição da descrição.
+
+A lista embutida veio da planilha *cadastro_descricoes_padronizadas*. Para trocá-la,
+use *Pedido → Atualizar lista de descrições* (1ª coluna código, 2ª coluna descrição,
+em CSV/TSV/TXT) — o mesmo formato da lista de cores. A lista importada fica gravada no
+navegador e tem prioridade sobre a que vem no arquivo.
+
+O botão *Digitar descrição fora da lista* existe para a descrição que ainda não foi
+padronizada. Ele exige o código, porque sem código o TOTVS pula o nível. A exportação
+avisa quantos produtos usaram descrição fora da lista.
+
+O `DS_PRODUTO` acompanha a máscara: sai como **espécie + descrição** (`MACACAO CURTO
+BOLSO E CAPUZ BICOLOR`), já que a descrição sozinha não identifica o produto.
 
 ### Valores (PRDFL003)
 
