@@ -258,6 +258,16 @@ A descrição do nível 5 deixou de ser texto livre: escolhe-se numa lista padro
 Escolher na lista preenche o código e o texto de uma vez — que é justamente o que evita
 o nível vazio que fazia a referência subir para a posição da descrição.
 
+Esses códigos **não existem ainda no TOTVS** — é uma padronização nova, e a importação
+é que cria os grupos do nível 5. Não há risco de conflito porque o padrão de 4 dígitos
+é diferente do que já está cadastrado lá.
+
+Como o grupo é criado pela importação, o texto enviado em `DS_GRUPO5` é o nome com que
+o grupo nasce. O layout aceita 40 caracteres em `DS_GRUPO` (e 10 em `CD_GRUPO`); 24 das
+1.154 descrições passam disso e entram cortadas. Nenhuma delas colide com outra nos
+40 primeiros caracteres, então cada código continua com um nome distinto. A exportação
+avisa quando algum produto está nessa situação.
+
 A lista embutida veio da planilha *cadastro_descricoes_padronizadas*. Para trocá-la,
 use *Pedido → Atualizar lista de descrições* (1ª coluna código, 2ª coluna descrição,
 em CSV/TSV/TXT) — o mesmo formato da lista de cores. A lista importada fica gravada no
