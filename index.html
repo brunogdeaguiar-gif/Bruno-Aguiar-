@@ -294,6 +294,17 @@ body{font-family:var(--fonte);background:#F0F2F5;min-height:100vh;color:#111827}
           <div class="field"><label for="marca">Marca</label><select id="marca"></select></div>
           <div class="field"><label for="estacao">Estação</label><select id="estacao"></select></div>
         </div>
+        <div class="field">
+          <span class="rotulo">Nome fantasia <span class="obrig">*classificação 107</span></span>
+          <button type="button" id="btn-nomefant" class="btn-escolha" onclick="abrirSeletorNomeFant()">
+            <span id="btn-nomefant-txt">Escolher nome fantasia...</span>
+            <span class="cor-item-cod" id="btn-nomefant-cod" hidden></span>
+          </button>
+          <input type="hidden" id="nome-fantasia">
+          <input type="hidden" id="nome-fantasia-cod">
+          <div class="hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg>
+            <span><span id="qtd-nomesfant">0</span> nomes cadastrados no TOTVS. Vai como classificação do produto, não como nível.</span></div>
+        </div>
         <div class="row2">
           <div class="field"><label for="p-compra">P. Compra (R$)</label><input type="text" id="p-compra" inputmode="decimal" placeholder="0,00"></div>
           <div class="field"><label for="p-venda">P. Venda (R$) <span class="obrig">*obrigatório TOTVS</span></label><input type="text" id="p-venda" class="campo-obrig" inputmode="decimal" placeholder="0,00"></div>
@@ -442,6 +453,29 @@ body{font-family:var(--fonte);background:#F0F2F5;min-height:100vh;color:#111827}
             <svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg> Voltar para a lista padrão
           </button>
         </div>
+        <div class="field">
+          <span class="rotulo">Lista de nomes fantasia (classificação 107)</span>
+          <div class="aviso aviso-ok" style="margin-bottom:8px">
+            <svg class="ic" aria-hidden="true"><use href="#i-info"/></svg>
+            <div id="nomefant-status">—</div>
+          </div>
+          <button type="button" class="btn-outline" style="margin:0" onclick="document.getElementById('input-nomesfant').click()">
+            <svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Atualizar lista de nomes fantasia
+          </button>
+          <input type="file" id="input-nomesfant" accept=".csv,.txt,.tsv,text/csv,text/plain" hidden>
+          <button type="button" class="btn-outline" onclick="listaNomeFantasia.restaurar()">
+            <svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg> Voltar para a lista padrão
+          </button>
+        </div>
+        <div class="field">
+          <label for="csv-classif">Classificações por produto (PRDFM308)</label>
+          <select id="csv-classif">
+            <option value="3">3 por vez — como diz o manual</option>
+            <option value="9">Todas as 9 — testar se o TOTVS aceita</option>
+          </select>
+          <div class="hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg>
+            <span>O manual do GERFP096 diz que só cabem 3 classificações por produto. Se o seu TOTVS aceitar mais, troque para "todas" e o restante entra na mesma importação; se ele recusar o arquivo, volte para 3 e complete o resto pelo PRDFM308.</span></div>
+        </div>
       </div>
     </section>
 
@@ -493,6 +527,25 @@ body{font-family:var(--fonte);background:#F0F2F5;min-height:100vh;color:#111827}
   </div>
 </div>
 
+<!-- MODAL: escolher o nome fantasia (classificação 107) -->
+<div class="modal" id="modal-nomefant" role="dialog" aria-modal="true" aria-labelledby="modal-nomefant-titulo">
+  <div class="modal-card">
+    <div class="modal-topo">
+      <span id="modal-nomefant-titulo">Escolher nome fantasia</span>
+      <button type="button" onclick="fecharSeletorNomeFant()" aria-label="Fechar"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-busca">
+      <input type="search" id="busca-nomefant" placeholder="Buscar por nome ou código..." autocomplete="off" aria-label="Buscar nome fantasia">
+      <div class="hint" id="nomefant-origem"></div>
+    </div>
+    <div class="cor-lista" id="lista-nomesfant"></div>
+    <div class="modal-rodape">
+      <button type="button" class="btn-outline" style="margin:0" onclick="nomeFantManual()">Digitar nome fora da lista</button>
+      <button type="button" class="btn-outline" onclick="limparNomeFant()">Deixar em branco</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- Únicas dependências externas: só são necessárias para gerar o PDF.
@@ -516,6 +569,7 @@ const CFG = {
   chaveRascunho: 'emmanuelle_rascunho_v2',
   chaveCores: 'emmanuelle_cores_v1',
   chaveDescricoes: 'emmanuelle_descricoes_v1',
+  chaveNomeFantasia: 'emmanuelle_nomefant_v1',
   fotoMaxLado: 1000,        // px do maior lado após redimensionar
   fotoQualidade: 0.78,      // qualidade JPEG
   csvSeparador: ';',
@@ -576,6 +630,25 @@ const CFG = {
   ],
   dsProdutoMax: 60,    // limite do campo no layout
 
+  /* Classificações (PRDFM308). Os tipos vêm do PRDFL011 e os códigos do
+     PRDR020. A ordem aqui é a ordem de prioridade: o layout do GERFP096 diz
+     que só cabem 3 conjuntos por produto, então as três primeiras são as que
+     NÃO dá para recuperar de outro lugar — marca, estação e nome fantasia não
+     existem em nenhum nível da máscara. Segmento, seção, espécie e
+     departamento já ficam gravados como níveis do grupo.
+     Se o TOTVS aceitar mais de 3, é só trocar o seletor na tela de exportação. */
+  classifTipos: [
+    {tipo: '105',  origem: 'marca',        nome: 'MARCA'},
+    {tipo: '106',  origem: 'estacao',      nome: 'ESTACAO'},
+    {tipo: '107',  origem: 'nomeFantasia', nome: 'NOME FANTASIA'},
+    {tipo: '100',  origem: 'segmento',     nome: 'SEGMENTO'},
+    {tipo: '101',  origem: 'secao',        nome: 'SECAO'},
+    {tipo: '102',  origem: 'especie',      nome: 'ESPECIE'},   // código completo: 300410
+    {tipo: '103',  origem: 'departamento', nome: 'DEPARTAMENTO'},
+    {tipo: '200',  fixo: '001',            nome: 'INTEGRACAO DW'},   // 001 BI
+    {tipo: '1007', fixo: '02',             nome: 'CLASS EMPRESA'},   // 02 EMMANUELLE
+  ],
+
   /* Valores do produto (PRDFL003). O layout aceita até 12 conjuntos
      CD_EMPVALOR/TP_VALOR/CD_VALOR/VL_PRODUTO. Aqui vão três:
        1 = Preço  / VENDA           -> P. Venda
@@ -592,6 +665,10 @@ const CFG = {
 /* Separador decimal do VL_PRODUTO1. O layout não especifica; fica ajustável
    na tela de exportação porque só o teste no TOTVS resolve. */
 let csvDecimal = ',';
+
+/* Quantas classificações vão por produto. O manual diz 3; só o teste no TOTVS
+   diz se a instalação daqui aceita as 9. Ajustável na tela de exportação. */
+let csvMaxClassif = 3;
 
 /* ===================== DADOS DE REFERÊNCIA ===================== */
 const GRADES = {
@@ -627,8 +704,52 @@ const DEPARTAMENTOS = [
   {cod:'007', nome:'BEBE'},
 ];
 const nomeDepartamento = (cod) => DEPARTAMENTOS.find(d => d.cod === cod)?.nome || '';
-const MARCAS = ['ALTERNATIVA','DI VANUCCI','ATRIUM','MILK AND HONEY','BZK BABY','BZK PRIMEIROS PASSOS','BZK KIDS','BZK TEENS'];
-const ESTACOES = ['VERÃO 26','INVERNO 26','VERÃO 27','INVERNO 27'];
+/* Marcas próprias — código = classificação tipo 105 MARCA - EM (PRDR020).
+   As demais marcas do PRDFL012 são de fornecedor e não entram aqui. */
+const MARCAS = [
+  {cod:'001', nome:'ALTERNATIVA'},
+  {cod:'002', nome:'DI VANUCCI'},
+  {cod:'003', nome:'ATRIUM'},
+  {cod:'004', nome:'MILK AND HONEY'},
+  {cod:'005', nome:'BZK BABY - RN'},
+  {cod:'006', nome:'BZK PRIMEIROS PASSOS'},
+  {cod:'007', nome:'BZK KIDS'},
+  {cod:'008', nome:'BZK TEENS'},
+];
+
+/* Estações do TOTVS — código = classificação tipo 106 ESTACAO - EM.
+   Lista completa do PRDR020, da mais nova para a mais antiga. */
+const ESTACOES = [
+  {cod:'026',nome:'00 INVERNO 2027'},
+  {cod:'025',nome:'60 OUTONO INVERNO 2027'},
+  {cod:'024',nome:'40 VERAO/ALTO VERAO 2027'},
+  {cod:'023',nome:'20 PRIMAVERA/VERAO 2027'},
+  {cod:'022',nome:'00 INVERNO 2026'},
+  {cod:'021',nome:'60 INVERNO 2026'},
+  {cod:'020',nome:'40 VERAO 2025/2026'},
+  {cod:'019',nome:'20 VERAO 2025/2026'},
+  {cod:'018',nome:'00 INVERNO 2025'},
+  {cod:'017',nome:'60 INVERNO 2025'},
+  {cod:'016',nome:'40 VERAO 2024/2025'},
+  {cod:'015',nome:'20 VERAO 2024/2025'},
+  {cod:'014',nome:'00 INVERNO 2024'},
+  {cod:'013',nome:'60 INVERNO 2024'},
+  {cod:'012',nome:'40 VERAO 2023/2024'},
+  {cod:'011',nome:'20 VERAO 2023/2024'},
+  {cod:'010',nome:'ESTACAO 00 - 2023'},
+  {cod:'009',nome:'ESTACAO 60 2023'},
+  {cod:'008',nome:'ESTACAO 40 2022/23'},
+  {cod:'007',nome:'ESTACAO 20 2022/23'},
+  {cod:'006',nome:'ESTACAO 00 2022/23'},
+  {cod:'005',nome:'NOS'},
+  {cod:'004',nome:'ESTACAO 60'},
+  {cod:'003',nome:'ESTACAO 40'},
+  {cod:'002',nome:'ESTACAO 20'},
+  {cod:'001',nome:'ESTACAO 0'},
+];
+
+const nomeMarca   = (cod) => MARCAS.find(m => m.cod === cod)?.nome || '';
+const nomeEstacao = (cod) => ESTACOES.find(e => e.cod === cod)?.nome || '';
 
 const SECOES = {
   '100':[{cod:'100',nome:'BLUSA DE MALHA'},{cod:'110',nome:'BLUSA DE TECIDO'},{cod:'120',nome:'SAIA'},{cod:'130',nome:'CALCA'},{cod:'140',nome:'BERMUDA'},{cod:'150',nome:'ROUPA INTIMA'},{cod:'160',nome:'PRAIA'},{cod:'170',nome:'BLAZER'},{cod:'180',nome:'JAQUETA'},{cod:'190',nome:'ACESSORIOS'},{cod:'200',nome:'VESTIDO'},{cod:'210',nome:'CONJUNTO'},{cod:'220',nome:'LINGERIE NOITE'},{cod:'230',nome:'AEROBICA'},{cod:'240',nome:'BOLSA'},{cod:'250',nome:'PLUS SIZE'}],
@@ -4207,6 +4328,617 @@ const DESCRICOES_PADRAO = `0001	1 BOTAO
 1153	ZIPER NA BARRA
 1154	ZIPER NA GOLA`;
 
+/* Nomes fantasia cadastrados no PRDFL012 — classificação tipo 107
+   NOME FANTASIA - EM. Formato: CODIGO<TAB>NOME.
+   Trocável em Pedido → Atualizar lista de nomes fantasia. */
+const NOMES_FANTASIA_PADRAO = `55727	1 BIGO
+56814	100 CENSURA CONFECCOES
+56798	3A JEANS
+56789	A2
+56150	ABRANGE
+56777	ACQUARELLA CLUB
+56465	ACROBAT
+56724	ADAK
+56767	ADLES
+56411	ADORIABELLE
+51767	AFRONT
+71823	AGTEX
+56812	AGTON
+56228	AGUA & OPIO
+55529	AGUA E OPIO - INATIVO
+56164	AGUA VIVA
+51433	AISHTY ALIRIO
+56720	AIZONE
+56617	AK COMPANY
+56527	AKET JEANS
+56806	AKIRA BOUTIQUE
+55869	AKIYOSHI
+56395	ALEKIDS
+56470	ALFA DEZ
+56628	ALICE CARRAZZONE
+56495	ALL FREE
+56508	ALLEGORIA
+56755	ALT SIDE
+56801	ALTOMAX
+13926	AMANDAPEDROSA
+56732	AMEI SPORT
+56570	AMIL CONFECCOES
+56112	AMUAGE
+56500	ANALU
+55813	ANARA
+56725	ANGELIS/W.TAVARES
+56214	ANGERO
+56400	ANIKE
+12889	ANJOTEX
+56562	ANNA KOCK
+56571	AP KIDS
+56713	AR JEANS
+56452	AREA
+56771	AREIA DO MAR
+56431	ARIES JEANS
+56517	ARMAZEM
+56537	ARRUMADINHO
+56793	ARTBELLA
+56750	ARTE BASICA
+56590	ATRAIDOS
+56476	AUTOGRAFO
+56640	AYLAHT
+56066	AYLANA
+56641	AZUL DO MAR
+53302	AZZEJO FASHION
+56698	B&G
+56569	BACCI
+56304	BACK BOY
+56738	BALLINE
+56379	BALOBALAIO
+56354	BARBITEX
+56581	BASE UNICA
+56727	BEAVER
+56817	BELLA
+56479	BELLA NOITE
+56459	BELLA VIDA
+52991	BELLE EPOQUE
+56584	BEMAX
+56674	BENEDITINE
+56139	BENETEX
+56816	BENNY
+14072	BGO
+56773	BICHO BAGUNCA
+56177	BICHO SOLTO
+56499	BICHO ZERO
+56363	BILRO
+56603	BIO DIVA
+56051	BIOBA
+56157	BJU KIDS
+56610	BLACK NIGHT
+56477	BLISS
+56677	BLU KIDS
+55907	BLUE BAY
+56532	BLUMA
+56409	BOB BANDEIRA
+56807	BOB BANDEIRA
+55854	BOCA GRANDE
+56691	BODY BLOOM
+56693	BODY BLOOM
+56275	BONUS
+56561	BRAND STORE
+56525	BRIARD
+56373	BRINCAR E ARTE
+56704	BUCHECHINHA
+53855	BUNDYS LINGERIE
+56415	BURILE JEANS
+55880	BY FOR MEN
+56191	BYGUS
+56649	C. PITTER
+56591	CAMARVI JEANS
+56025	CARA METADE
+56585	CASTELO AVENTURA
+10649	CATIVA
+56601	CATOLELE
+56447	CAVALHEIRO
+55889	CEM% MORENA
+56796	CENTRAL BEACH
+56739	CEREJA ROSA
+56775	CE·&DY
+56754	CHARM
+56179	CHARM'S MV
+56486	CHIC CORAL
+1	CHIC UP
+56457	CHIC UP
+56531	CHROMO MODA
+56440	CIA DA MEIA
+54203	CINTO MANIA
+56632	CK SUMMER
+56785	CLEOMARA
+56700	CLUB MAJU
+56530	CLUBE DO DOCE
+56488	CLUBINHO FASHION
+56588	COESAO
+14382	COLISAO
+56659	COLISAO OPORTUNIDADES
+56653	COOKS JEANS
+56764	COOLPER JEANS
+56769	COSTA BOY
+56544	COSTAO
+56722	COUCHER
+56608	COURO MANIA
+15179	CRITTON
+56064	CROCKER
+56652	CSC CONF
+56432	CUECAS UOW
+150343	D OLIGE
+71821	D&O POLO
+56540	DACORTHE
+149307	DARTHANGNAN
+56496	DECIZAO
+56721	DECOY LULLI
+56494	DEDIKA
+56748	DEDO DOCE
+149189	DEL AMORE
+56489	DENVER JEANS
+52255	DESAYNER CONFECCOES
+56140	DETRICK MALHAS
+56185	DEZALI
+56412	DGIX IMPORTS
+56402	DI MARIA
+56621	DICE LINGERIE
+55809	DIDIENE MALHAS
+56436	DILADY
+12075	DISNEP
+56787	DISPARATE
+56243	DIXIE-NACIONAL
+56305	DIXIE2
+56483	DL MALHAS
+55762	DL XANLY
+18065	DOCE & MEL
+56364	DOCE BRILHO
+55999	DOCE DIVA
+56650	DOCE MEL
+56399	DOG CRAZY/BIG WAVE
+56259	DONA FELINA - INATIVO
+56376	DONA FELINA - NOVO
+56684	DONA LOLA
+149266	DONA ONDA
+56518	DONNA JEANS/LIMINAR
+56414	DONNA LETTA
+56474	DORABELLA
+56351	DRIKAS
+56746	DROVER
+10157	DUBLACK
+14862	DUDUKA/LULI
+56514	DUDYS BOY
+56662	DUKY
+56558	DUZIZO
+55895	DY MONA
+56424	EAGLE ROCK
+56485	ECOTRADING
+56556	ECXO JEANS
+56388	ELAH LINGERIE
+141582	ELCHAI
+56598	ELIABE
+56666	ELISA COSTA
+56258	EMPORIO AGA
+56574	EMPORIO CR
+56623	ENNAFIE MODAS
+56487	EROS
+56717	ESCAPADE
+56205	ESTILO A
+56634	ESTILO DIVA/ WILMA TAVARES
+15787	ESTRELINHA DE OURO
+56629	EVALYN
+56647	EVOLUCAO
+56678	EXCLUZZIVA
+56742	EXINIA
+56423	EXTIN
+17541	FAKINI
+56463	FANIKITUS/REAL MALHAS
+56734	FAOS JEANS
+56316	FASHION ART
+56695	FATAL
+56507	FBR CONFECCOES
+56794	FEMALE
+56643	FEMMINART
+56731	FENALU NINOBOY
+144797	FIKA
+55747	FILT
+56533	FINA CHIC
+56520	FINA ESTAMPA/ VALENTINA
+56443	FINE
+56611	FIOTTY
+54446	FISHERS
+56636	FIT CAT
+56613	FITWELL
+56729	FIX JEANS
+55918	FK FASHION
+56516	FLAJO (ANGERO)
+56811	FLORISBELLA
+56802	FND
+56448	FOCUS JEANS
+56690	FOLLOW CLOTHING
+15477	FORT LOOK/ARQUEIRO
+56743	FOUR SEASONS
+56612	FR TEXTIL
+56804	FR TEXTIL
+56437	FRENT'S
+56788	FUOR ALL PRIME
+56696	G-91
+56502	GABS CONFECCOES
+56180	GABY PINK
+56049	GADANI
+56564	GAJANG
+52140	GANGSTER
+55998	GATA FASHION
+56803	GATTUTY
+56658	GERACAO BRASIL ERA NOVA
+56368	GERACAO BRASIL/MILLENKA
+54320	GERACAO JOVEM
+56535	GERACAO TEXTIL
+56567	GISELKE
+56445	GLOBINHO CONFEC.
+56770	GRATTO
+55256	GRIFLE
+56596	GRITTY
+56799	GRZ
+56597	GUDYNY
+56580	GUERES
+13596	GUITTA RIO
+56393	HAD DO BRASIL
+56709	HAFF
+56779	HANNA LOOK
+52450	HE
+56454	HELI FASHION
+56809	HEZAG
+56396	HLERINHA
+56522	HMO JEANS
+56332	HRRADINHOS
+56784	HUMAN BODY
+56813	IAMA HOMEWEAR
+56752	IDHOK
+56582	IDISE
+71820	IF DIGITAL - ANTIGA YES BOLSAS
+56026	IKATEX
+56468	IMAGEM BRASIL
+53405	IMPACTO
+56573	IMPERIO G
+56442	INIBIDO
+54537	INNOVA
+55714	INTIMA FLOR
+56555	ISKA VIVA
+56686	J SHAYEB
+56619	J.BIA FASHION
+56749	JAKI MALHAS
+56759	JB JEANS
+55902	JBA CONFECCOES
+56639	JEITOSINHA/WILMA
+54677	JEZZIAN - ADULTO
+56360	JEZZIAN - FABRICA
+56359	JEZZIAN - JUVENIL
+56702	JIDI KIDS
+56620	JIMY JEANS
+56542	JIN D.G
+56718	JK
+55785	JO LEVER
+56735	JOINHA
+56181	JP MALHAS
+56240	JUNIOR MALHAS
+56753	JUST DENIM
+56334	JYF
+56506	K LINDA
+56475	K.X
+55986	KAMYLUS
+56633	KANAL SURF
+56042	KANOA SURF
+56241	KDU
+56040	KELY KETY
+56519	KFK
+55960	KIKO E KIKA
+56478	KING SAIL
+150510	KIT PROMOCIONAL
+56805	KULT
+54896	KUSTON
+10819	KYLY
+56631	KYTERNURA/ WILMA TAVARES
+56505	LA MODE
+56578	LA SIRENA
+56492	LABAMBA
+56661	LABELLI
+56559	LAERVI
+56553	LANNA FIOLI
+15258	LANSER/BEIJOKA
+56290	LAURINHA LINGERIE (ETRE)
+56111	LAY OUT
+56776	LB MODAS
+56660	LEASH
+55775	LECIMAR
+56515	LEMISE
+56758	LEYPER FITNESS
+56715	LGN
+56391	LIBELULA
+56740	LILAS CHIC
+56694	LIMINAR JEANS
+56672	LINDA BEL JEANS
+56498	LINDA CRISLA
+56751	LITORANEA
+17565	LITTLE STAR
+55682	LIVAN JEANS
+56645	LIVIA
+56124	LOCAL SURF
+56539	LOLA
+56193	LOLA.
+56730	LOLLIX
+56392	LONG BONG
+56011	LOOK CHIC
+56300	LOOK DE MENINA/JEITO DE DUDA
+149322	LOREN JEANS
+001	LOULE
+56434	LOULE
+56435	LOVE SECRET
+56422	LOVERLY
+53776	LPM MALHAS
+56510	LUAN CONFECCOES
+56557	LUANITA
+56618	LZT
+56548	M E N DIAS/ TOTTER CUECAS
+56206	MAC JU
+56484	MACGIANT
+56707	MACHY
+56651	MACROSS
+56311	MAIS CHIC
+56034	MAIS X MULHER
+56599	MAJU
+55966	MALHANELLA
+17980	MALHARIA CRISTINA
+56523	MALHARIA REGIL
+56576	MALHAS 13
+56673	MALLBECK
+56766	MALUB
+56609	MANA JU
+56768	MARIA ALICIA
+53790	MARIA MULHER
+56593	MARILU
+56594	MARINA BEACH WEAR
+56306	MARLAN
+56013	MARO
+56549	MATARRAZO MODA FITNESS
+54653	MC JO
+56207	MDI
+56719	MEIN
+56441	MELHOR STILO
+56528	MELINDA MODAS
+56577	MENINA BRAZIL
+56745	MENINA CLARA
+56579	MENINA SAPECA /WILMA
+56679	MENINHO KIDS
+56595	MENININHO KIDS
+56460	MENTAPIMENTA
+56497	MEU LOOK NOVO
+56511	MIKALCE
+56461	MIL SOU PLUS
+56568	MILANO
+56413	MILF MODAS
+56733	MILON/KYLY
+56726	MINE GIRLS
+56682	MINI ARTE
+56545	MINORE
+56575	MISIMI
+56737	MISIMI (ATUAL)
+55831	MISS BELLY
+56774	MISS BONITA
+56761	MISS L
+56425	MISS L / MARSELHA
+56625	MISS MOON
+56504	MISS NINA
+56160	MISS PECK
+56355	MITTOTEX
+55910	MIX JEANS
+56630	ML JEANS/ WILMA TAVARES
+56106	MMT
+56706	MMT ULTIMATO
+56627	MOCHINE
+56763	MODA CONECTADA
+55963	MODA LOCA
+149755	MODERNA LINGERIE
+56385	MOKKAI JEANS
+56032	MOLEKADA
+56138	MOONCITY
+55937	MOREIA
+56472	MOSAICO/OVER CORE
+56670	MOVIMENTE-SE
+56408	MOX
+56605	MSN
+56648	MULEKA BAKANA/ WILMA TAVARES
+71822	MUNDO MANIA
+56233	MX-72
+56458	MY BOLSAS
+56342	N TOPS
+56616	NAHTEXTIL
+56667	NAIF
+56808	NANAI
+56503	NARAKA JEANS
+56509	NAXOS
+52620	NEW BIKE
+56501	NEW WAIKE JEANS-VIA CERTA
+56783	NEY FAR
+56433	NIKIMBA
+71819	NINETY EIGHT/GANGSTER
+56663	NOVA GERACAO
+56534	NYKA LOOK
+50453	OBJETO BRASIL
+56085	ODY MALHAS
+56716	OFF ZONE
+55591	OKAVANGO
+56592	OLIVIA PALITO
+56536	OLLELE
+56419	ONDA CHEIA
+56701	ONDA MIL
+56714	ONDAS DO CARIBE
+56455	ONILEV
+56600	ORICK
+56383	ORIGEM
+56637	ORUAN
+56655	OSTENTACAO
+56203	OVER CORE
+56380	OVER SURF
+56692	P12/MAFIA
+56560	PAC LINGERIE
+56225	PACIFIC BLUE (GET ONE)
+10029	PACIFIC BLUE (RKAIN)
+53510	PACIFIC BLUE (VIA TRANSIT)
+56367	PAGIO
+56646	PARADOX JEANS
+56602	PATHY
+56780	PATOTA
+56201	PEGA LEVE
+56550	PEKENINA
+55819	PEQUENA FLOR
+56223	PEQUENOS BRILHANTES
+56418	PIC NIC
+55728	PICUXUTINHO
+56676	PIMPINELLA
+56547	PINK LEYA
+56524	PINK QUEEN
+56683	PLANET BLUE
+56680	PLANNER
+10030	PLAY DENIN
+56481	POKOTINHA
+56429	POKY TROOP
+56287	POLEGAR
+56810	PRINCESA PINK
+56644	PUPILLO KIDS
+56615	PURA INFANCIA - LUNNY
+56453	QUEENS
+16421	QUESTAO DE ESTILO
+56146	RAC
+56699	RACKSO JEANS
+55868	RAD SURF
+56065	RAFROW
+56521	RALA LINDA
+55964	RALAKIDS
+54318	RAZON JEANS
+56020	RECOLLETA
+56765	RED WAY
+56712	REDDING
+56589	REMAIS
+52498	RENALUCI
+56638	RENAMARY
+56756	REUBERT JEANS
+56795	REVERT
+56790	RIBLACK
+56710	RICOL
+56255	ROANA
+56675	RODHE E LUXE
+56614	ROLU
+55859	ROSE FEIJAO
+50740	ROTA DO MAR
+56741	ROVITEX
+51950	ROWER JEANS
+56762	ROYACK JEANS
+081	SANDER
+55983	SANDER
+56626	SANTA PASSION
+56172	SAWARY
+51044	SBA
+55816	SCALLOP
+56778	SEA SURF
+56467	SEMAX - ABR
+56473	SEMAX- UP
+56705	SEMPRE KIDS
+56546	SEMPRE LINDA
+51238	SEOUL
+56384	SEVEN WAY
+56685	SHEILA MALHAS
+56192	SHIOO
+11009	SIDEWAY
+56671	SLINKS
+56403	SMART JEANS
+56781	SMILLE
+56178	SONHO DE AMOR
+56378	SONHO VIVO
+56607	SOU+EU
+56451	SOUS BRASIL
+54422	SPORT BRISA
+56554	STARKISS
+55760	STYLE
+56760	STYLO PROPRIO
+56394	STYLO SETE/LEAB
+56482	STYLUS FITNESS
+56551	SUBELLA
+56583	SUBMISSAO JEANS
+55735	SUBURBAN
+56108	SUEZ
+56480	SUN WAVE
+56438	SUNBLESS
+56490	SUNFLOWER (SEE BLUE)
+55958	SVK
+56456	T.REX IMPORTS
+56711	TAKALU
+53831	TANGRAM
+56642	TANZ
+56387	TAYU
+56512	TBT JEANS
+55972	TDG
+56493	TEDDY COLOR
+56439	TEEN LIFE/ DAY NEWS
+56815	TENDENCIA/VRG
+52012	TEXMAR
+56697	TEXTIL PEDROSA
+56654	THE STYLE BOX
+56430	THE WOMAN
+56782	TIBUM
+56307	TILE E SUL
+56171	TILIKO
+16470	TODA NUA
+56572	TOM ERY
+56471	TOOL
+56427	TOP ORANGE - MYX
+55866	TOP ROCK
+56543	TOQUE SECRETO
+56708	TOTTI JEANS
+888	TRELUNA
+51226	TRIBO
+56088	TRICK NICK
+56792	TRIN
+56669	TX 20
+56041	UNIVERSAL/FOR GIRL
+56333	UNIVERSAL/FOR GIRL 1
+55944	UP
+56657	USE UP
+56635	VENTURE
+56772	VERSALLY
+55843	VIA BELLA
+56541	VIA BOY
+56665	VIA ONIX
+56757	VIA STYLUS JEANS
+56723	VIA-4
+56604	VILA FLOR
+56464	VILAD JEANS
+56444	VILLAENZO
+56586	VINDICE
+56466	VINYL
+56728	VISTON
+56513	VITALITE
+56664	VIZZADA
+56747	VRG
+56703	WAVECORE TILIKO
+55969	WBA
+56565	WIND LIFE
+55905	WINSTON
+56818	WK66
+56375	X STYL
+56325	YELOW PINK
+56337	YEND´S
+56462	YES BOLSAS
+56800	ZAFFERANO
+56797	ZAMBIANK
+56288	ZEE RUCCI (ICONE)
+56087	ZEE RUCCI (LINCK)
+56624	ZHOR
+56744	ZHORK
+56668	ZOATO JEANS
+56786	ZUNE
+56538	ZURIK JEANS
+56587	ZUZINHA`;
+
 /* ===================== UTILITÁRIOS ===================== */
 const $ = (id) => document.getElementById(id);
 
@@ -4297,38 +5029,6 @@ function converterExportTotvs(texto, reCabecalho){
   return saida.join('\n');
 }
 
-/* ===================== LISTA DE DESCRIÇÕES (nível 5) =====================
-   Cada item tem um código sequencial de 4 dígitos e o texto padronizado.
-   O código vai para CD_GRUPO5 e o texto para DS_GRUPO5. Escolher da lista
-   é o caminho normal; digitar fora dela existe só para o caso de uma
-   descrição nova que ainda não foi padronizada. */
-let DESCRICOES = [];
-let descricoesOrigem = 'padrão';
-
-function carregarDescricoes(texto, origem){
-  const lista = [];
-  const vistos = new Set();
-  String(texto).split(/\r?\n/).forEach(ln => {
-    if (!ln.trim()) return;
-    const p = ln.split('\t');
-    const cod = (p[0] || '').trim();
-    const nome = (p[1] || '').trim();
-    if (!cod || vistos.has(cod)) return;
-    vistos.add(cod);
-    lista.push({cod, nome, busca: (cod + ' ' + nome).toLowerCase()});
-  });
-  if (!lista.length) return false;
-  lista.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-  DESCRICOES = lista;
-  descricoesOrigem = origem;
-  return true;
-}
-function acharDescricao(cod){
-  if (!cod) return null;
-  const c = String(cod).trim().toLowerCase();
-  return DESCRICOES.find(d => d.cod.toLowerCase() === c) || null;
-}
-
 /* ===================== ESTADO ===================== */
 const state = {
   pedido: {dtIni:'', dtFim:'', prazo:'', comissao:'', fornecedor:'', cnpj:'', frete:'', materiaPrima:''},
@@ -4415,7 +5115,21 @@ function normalizarProduto(p){
     descricao: String(p.descricao || ''),
     descricaoCod: String(p.descricaoCod || ''),
     observacao: String(p.observacao || ''),
-    marca: String(p.marca || ''), estacao: String(p.estacao || ''),
+    /* versões antigas guardavam o NOME da marca/estação; agora vale o código
+       da classificação. Estação não tem como migrar: os nomes antigos
+       ("VERÃO 26") não existem no TOTVS. */
+    ...(() => {
+      const v = String(p.marca || '');
+      const cod = (!v || MARCAS.some(m => m.cod === v)) ? v
+        : (MARCAS.find(m => m.nome.toUpperCase().startsWith(v.toUpperCase()))?.cod || '');
+      return {marca: cod, marcaNome: nomeMarca(cod) || String(p.marcaNome || '')};
+    })(),
+    ...(() => {
+      const cod = ESTACOES.some(e => e.cod === String(p.estacao || '')) ? String(p.estacao) : '';
+      return {estacao: cod, estacaoNome: nomeEstacao(cod)};
+    })(),
+    nomeFantasia: String(p.nomeFantasia || ''),
+    nomeFantasiaCod: String(p.nomeFantasiaCod || ''),
     pCompra: (p.pCompra == null || p.pCompra === '') ? null : Number(p.pCompra),
     pVenda:  (p.pVenda  == null || p.pVenda  === '') ? null : Number(p.pVenda),
     foto: (typeof p.foto === 'string' && p.foto.startsWith('data:image/')) ? p.foto : null,
@@ -4686,111 +5400,216 @@ function restaurarListaPadrao(){
   toast(`Lista padrão restaurada: ${CORES.length} cores.`);
 }
 
-/* ===================== SELETOR DE DESCRIÇÃO (nível 5) ===================== */
-function abrirSeletorDesc(){
-  $('busca-desc').value = '';
-  $('desc-origem').textContent = `${DESCRICOES.length} descrições (${descricoesOrigem})`;
-  filtrarDescricoes('');
-  $('modal-desc').classList.add('aberto');
-  document.body.style.overflow = 'hidden';
-  setTimeout(() => $('busca-desc').focus(), 60);
-}
-function fecharSeletorDesc(){
-  $('modal-desc').classList.remove('aberto');
-  document.body.style.overflow = '';
-}
-function definirDescricao(cod, texto){
-  $('descricao').value = texto;
-  $('descricao-cod').value = cod;
-  atualizarBotaoDescricao();
-  persistir();
-}
-function escolherDescricao(cod, texto){
-  definirDescricao(cod, texto);
-  fecharSeletorDesc();
-}
-function limparDescricao(){
-  definirDescricao('', '');
-  fecharSeletorDesc();
-}
-function atualizarBotaoDescricao(){
-  const texto = $('descricao').value;
-  const cod = $('descricao-cod').value;
-  const btn = $('btn-descricao'), elCod = $('btn-descricao-cod');
-  $('btn-descricao-txt').textContent = texto || 'Escolher descrição na lista...';
-  btn.classList.toggle('vazio', !texto && !cod);
-  elCod.hidden = !cod;
-  elCod.textContent = cod;
-}
-function filtrarDescricoes(termo){
-  const t = termo.trim().toLowerCase();
-  const alvo = $('lista-descricoes');
-  const achados = t ? DESCRICOES.filter(d => d.busca.includes(t)) : DESCRICOES;
-  const MAX = 80;
-  alvo.textContent = '';
+/* ============== LISTAS PESQUISÁVEIS (nível 5 e nome fantasia) ==============
+   Mesma mecânica da lista de cores: uma lista embutida no arquivo, trocável
+   por uma exportação do TOTVS, e um seletor com busca. Duas listas usam esta
+   fábrica — a descrição do nível 5 e o nome fantasia. */
+function criarListaPesquisavel(cfg){
+  const api = {itens: [], origem: 'padrão'};
+  const $$ = (k) => $(cfg.ids[k]);
 
-  if (!achados.length) {
-    const v = document.createElement('div');
-    v.className = 'cor-vazio';
-    v.textContent = 'Nenhuma descrição encontrada. Use "Digitar descrição fora da lista" abaixo.';
-    alvo.appendChild(v);
-    return;
-  }
-  achados.slice(0, MAX).forEach(d => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'cor-item';
-    const n = document.createElement('span'); n.className = 'cor-item-nome'; n.textContent = d.nome || '(sem texto)';
-    const k = document.createElement('span'); k.className = 'cor-item-cod'; k.textContent = d.cod;
-    b.append(n, k);
-    b.addEventListener('click', () => escolherDescricao(d.cod, d.nome));
-    alvo.appendChild(b);
-  });
-  if (achados.length > MAX) {
-    const m = document.createElement('div');
-    m.className = 'cor-vazio';
-    m.textContent = `Mostrando ${MAX} de ${achados.length}. Refine a busca.`;
-    alvo.appendChild(m);
-  }
-}
-/** Saída de emergência: descrição que ainda não existe na lista padronizada.
-    Exige o código porque sem ele o TOTVS pula o nível 5. */
-function descManual(){
-  const texto = (prompt('Texto da descrição (nível 5), até 40 caracteres:', $('descricao').value || '') || '').trim();
-  if (!texto) return;
-  const jaExiste = DESCRICOES.find(d => d.nome.toLowerCase() === texto.toLowerCase());
-  if (jaExiste) { escolherDescricao(jaExiste.cod, jaExiste.nome); return; }
-  const cod = (prompt(
-    'Código dessa descrição no TOTVS (só números).\n\n' +
-    'Esta descrição não está na lista padronizada. Confirme no TOTVS qual é o\n' +
-    'próximo número livre do nível DESCRICAO — sem código o TOTVS pula o nível\n' +
-    'e a referência do fornecedor entra no lugar dele.', '') || '').replace(/\D/g,'');
-  if (!cod) return;
-  escolherDescricao(cod.substring(0,10), texto.substring(0,40));
-}
-function importarListaDescricoes(file){
-  const r = new FileReader();
-  r.onload = () => {
-    const convertido = converterExportTotvs(String(r.result), /c[óo]digo|codigo|cd_grupo/i);
-    const qtd = convertido.split('\n').filter(Boolean).length;
-    if (!qtd) { alert('Não encontrei nenhuma descrição no arquivo.\n\nEsperado: 1ª coluna = código, 2ª coluna = descrição (CSV, TSV ou TXT).'); return; }
-    if (!confirm(`Encontrei ${qtd} descrições no arquivo.\n\nIsto substitui a lista atual (${DESCRICOES.length} descrições). Continuar?`)) return;
-    if (!carregarDescricoes(convertido, 'importada')) { alert('Não foi possível ler a lista.'); return; }
-    try { localStorage.setItem(CFG.chaveDescricoes, convertido); } catch (e) {
-      alert('A lista foi carregada, mas não coube no armazenamento do navegador — será preciso importar de novo ao recarregar a página.');
-    }
-    atualizarStatusDescricoes();
-    toast(`Lista de descrições atualizada: ${DESCRICOES.length} itens.`);
+  api.carregar = (texto, origem) => {
+    const lista = [], vistos = new Set();
+    String(texto).split(/\r?\n/).forEach(ln => {
+      if (!ln.trim()) return;
+      const p = ln.split('\t');
+      const cod = (p[0] || '').trim(), nome = (p[1] || '').trim();
+      if (!cod || vistos.has(cod)) return;
+      vistos.add(cod);
+      lista.push({cod, nome, busca: (cod + ' ' + nome).toLowerCase()});
+    });
+    if (!lista.length) return false;
+    lista.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    api.itens = lista;
+    api.origem = origem;
+    return true;
   };
-  r.onerror = () => alert('Não foi possível ler o arquivo.');
-  r.readAsText(file, 'utf-8');
+  api.achar = (cod) => {
+    if (!cod) return null;
+    const c = String(cod).trim().toLowerCase();
+    return api.itens.find(x => x.cod.toLowerCase() === c) || null;
+  };
+
+  api.abrir = () => {
+    $$('busca').value = '';
+    $$('origem').textContent = `${api.itens.length} ${cfg.plural} (${api.origem})`;
+    api.filtrar('');
+    $$('modal').classList.add('aberto');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => $$('busca').focus(), 60);
+  };
+  api.fechar = () => {
+    $$('modal').classList.remove('aberto');
+    document.body.style.overflow = '';
+  };
+  api.definir = (cod, texto) => {
+    $(cfg.campoTexto).value = texto;
+    $(cfg.campoCod).value = cod;
+    api.atualizarBotao();
+    persistir();
+  };
+  api.escolher = (cod, texto) => { api.definir(cod, texto); api.fechar(); };
+  api.limpar = () => { api.definir('', ''); api.fechar(); };
+
+  api.atualizarBotao = () => {
+    const texto = $(cfg.campoTexto).value, cod = $(cfg.campoCod).value;
+    const btn = $$('botao'), elCod = $$('btnCod');
+    $$('btnTxt').textContent = texto || cfg.textoVazio;
+    btn.classList.toggle('vazio', !texto && !cod);
+    elCod.hidden = !cod;
+    elCod.textContent = cod;
+  };
+
+  api.filtrar = (termo) => {
+    const t = termo.trim().toLowerCase();
+    const alvo = $$('lista');
+    const achados = t ? api.itens.filter(x => x.busca.includes(t)) : api.itens;
+    const MAX = 80;
+    alvo.textContent = '';
+    if (!achados.length) {
+      const v = document.createElement('div');
+      v.className = 'cor-vazio';
+      v.textContent = `Nada encontrado. Use "${cfg.textoManual}" abaixo.`;
+      alvo.appendChild(v);
+      return;
+    }
+    achados.slice(0, MAX).forEach(x => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'cor-item';
+      const n = document.createElement('span'); n.className = 'cor-item-nome'; n.textContent = x.nome || '(sem texto)';
+      const k = document.createElement('span'); k.className = 'cor-item-cod'; k.textContent = x.cod;
+      b.append(n, k);
+      b.addEventListener('click', () => api.escolher(x.cod, x.nome));
+      alvo.appendChild(b);
+    });
+    if (achados.length > MAX) {
+      const m = document.createElement('div');
+      m.className = 'cor-vazio';
+      m.textContent = `Mostrando ${MAX} de ${achados.length}. Refine a busca.`;
+      alvo.appendChild(m);
+    }
+  };
+
+  /* Saída de emergência: item que ainda não existe na lista.
+     O código é obrigatório — sem ele o TOTVS não grava a informação. */
+  api.manual = () => {
+    const texto = (prompt(cfg.promptTexto, $(cfg.campoTexto).value || '') || '').trim();
+    if (!texto) return;
+    const jaExiste = api.itens.find(x => x.nome.toLowerCase() === texto.toLowerCase());
+    if (jaExiste) { api.escolher(jaExiste.cod, jaExiste.nome); return; }
+    const cod = (prompt(cfg.promptCod, '') || '').replace(/\D/g, '');
+    if (!cod) return;
+    api.escolher(cod.substring(0, 10), texto.substring(0, 40));
+  };
+
+  api.importar = (file) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const convertido = converterExportTotvs(String(r.result), /c[óo]digo|codigo|cd_grupo|classifica/i);
+      const qtd = convertido.split('\n').filter(Boolean).length;
+      if (!qtd) { alert(`Não encontrei ${cfg.plural} no arquivo.\n\nEsperado: 1ª coluna = código, 2ª coluna = descrição (CSV, TSV ou TXT).`); return; }
+      if (!confirm(`Encontrei ${qtd} ${cfg.plural} no arquivo.\n\nIsto substitui a lista atual (${api.itens.length}). Continuar?`)) return;
+      if (!api.carregar(convertido, 'importada')) { alert('Não foi possível ler a lista.'); return; }
+      try { localStorage.setItem(cfg.chave, convertido); } catch (e) {
+        alert('A lista foi carregada, mas não coube no armazenamento do navegador — será preciso importar de novo ao recarregar a página.');
+      }
+      api.atualizarStatus();
+      toast(`Lista atualizada: ${api.itens.length} ${cfg.plural}.`);
+    };
+    r.onerror = () => alert('Não foi possível ler o arquivo.');
+    r.readAsText(file, 'utf-8');
+  };
+  api.restaurar = () => {
+    if (!confirm(`Voltar para a lista de ${cfg.plural} que veio com o sistema?`)) return;
+    try { localStorage.removeItem(cfg.chave); } catch (e) {}
+    api.carregar(cfg.padrao, 'padrão');
+    api.atualizarStatus();
+    toast(`Lista padrão restaurada: ${api.itens.length} ${cfg.plural}.`);
+  };
+  api.atualizarStatus = () => {
+    const el = $$('status');
+    if (el) el.textContent = api.origem === 'padrão'
+      ? `${cfg.textoStatus} ${api.itens.length} ${cfg.plural}.`
+      : `Lista importada: ${api.itens.length} ${cfg.plural}.`;
+    const q = $$('qtd');
+    if (q) q.textContent = String(api.itens.length);
+  };
+  api.iniciar = () => {
+    let salva = null;
+    try { salva = localStorage.getItem(cfg.chave); } catch (e) {}
+    if (!salva || !api.carregar(salva, 'importada')) api.carregar(cfg.padrao, 'padrão');
+  };
+  api.ligarEventos = () => {
+    let timer = null;
+    $$('busca').addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => api.filtrar($$('busca').value), 140);
+    });
+    $$('modal').addEventListener('click', (e) => { if (e.target === $$('modal')) api.fechar(); });
+    $(cfg.ids.input).addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (f) api.importar(f);
+    });
+  };
+  return api;
 }
-function restaurarDescricoesPadrao(){
-  if (!confirm('Voltar para a lista de descrições que veio com o sistema?')) return;
-  try { localStorage.removeItem(CFG.chaveDescricoes); } catch (e) {}
-  carregarDescricoes(DESCRICOES_PADRAO, 'padrão');
-  atualizarStatusDescricoes();
-  toast(`Lista padrão restaurada: ${DESCRICOES.length} descrições.`);
-}
+
+/* Nível 5 da máscara: código de 4 dígitos + texto padronizado. */
+const listaDescricoes = criarListaPesquisavel({
+  chave: CFG.chaveDescricoes, padrao: DESCRICOES_PADRAO,
+  campoTexto: 'descricao', campoCod: 'descricao-cod',
+  plural: 'descrições', textoVazio: 'Escolher descrição na lista...',
+  textoManual: 'Digitar descrição fora da lista',
+  textoStatus: 'Lista padrão com',
+  promptTexto: 'Texto da descrição (nível 5), até 40 caracteres:',
+  promptCod: 'Código dessa descrição no TOTVS (só números).\n\n' +
+             'Esta descrição não está na lista padronizada. Confirme no TOTVS qual é o\n' +
+             'próximo número livre do nível DESCRICAO — sem código o TOTVS pula o nível\n' +
+             'e a referência do fornecedor entra no lugar dele.',
+  ids: {botao:'btn-descricao', btnTxt:'btn-descricao-txt', btnCod:'btn-descricao-cod',
+        modal:'modal-desc', busca:'busca-desc', lista:'lista-descricoes', origem:'desc-origem',
+        status:'descricoes-status', qtd:'qtd-descricoes', input:'input-descricoes'},
+});
+
+/* Classificação 107 NOME FANTASIA - EM. */
+const listaNomeFantasia = criarListaPesquisavel({
+  chave: CFG.chaveNomeFantasia, padrao: NOMES_FANTASIA_PADRAO,
+  campoTexto: 'nome-fantasia', campoCod: 'nome-fantasia-cod',
+  plural: 'nomes fantasia', textoVazio: 'Escolher nome fantasia...',
+  textoManual: 'Digitar nome fora da lista',
+  textoStatus: 'Lista do PRDR020 com',
+  promptTexto: 'Nome fantasia, até 40 caracteres:',
+  promptCod: 'Código desse nome fantasia no TOTVS (só números, classificação 107).',
+  ids: {botao:'btn-nomefant', btnTxt:'btn-nomefant-txt', btnCod:'btn-nomefant-cod',
+        modal:'modal-nomefant', busca:'busca-nomefant', lista:'lista-nomesfant', origem:'nomefant-origem',
+        status:'nomefant-status', qtd:'qtd-nomesfant', input:'input-nomesfant'},
+});
+
+/* Nomes curtos usados pelo HTML e pelo resto do código. */
+const abrirSeletorDesc  = () => listaDescricoes.abrir();
+const fecharSeletorDesc = () => listaDescricoes.fechar();
+const filtrarDescricoes = (t) => listaDescricoes.filtrar(t);
+const escolherDescricao = (c, t) => listaDescricoes.escolher(c, t);
+const definirDescricao  = (c, t) => listaDescricoes.definir(c, t);
+const limparDescricao   = () => listaDescricoes.limpar();
+const descManual        = () => listaDescricoes.manual();
+const acharDescricao    = (c) => listaDescricoes.achar(c);
+const carregarDescricoes = (txt, o) => listaDescricoes.carregar(txt, o);
+const restaurarDescricoesPadrao = () => listaDescricoes.restaurar();
+const atualizarStatusDescricoes = () => listaDescricoes.atualizarStatus();
+const atualizarBotaoDescricao   = () => listaDescricoes.atualizarBotao();
+
+const abrirSeletorNomeFant  = () => listaNomeFantasia.abrir();
+const fecharSeletorNomeFant = () => listaNomeFantasia.fechar();
+const nomeFantManual        = () => listaNomeFantasia.manual();
+const limparNomeFant        = () => listaNomeFantasia.limpar();
+const acharNomeFantasia     = (c) => listaNomeFantasia.achar(c);
+
+Object.defineProperty(window, 'DESCRICOES', {get: () => listaDescricoes.itens});
+Object.defineProperty(window, 'descricoesOrigem', {get: () => listaDescricoes.origem});
+Object.defineProperty(window, 'NOMES_FANTASIA', {get: () => listaNomeFantasia.itens});
+
 
 /* ===================== EDITOR DE LOJAS ===================== */
 function criarEditorLojas(cfg){
@@ -5024,7 +5843,7 @@ function validarDatas(){
 }
 
 /* ---- rascunho (produto em digitação) ---- */
-const CAMPOS_PRODUTO = ['segmento','secao','especie','departamento','descricao','descricao-cod','ref-forn','ncm','marca','estacao','p-compra','p-venda','observacao'];
+const CAMPOS_PRODUTO = ['segmento','secao','especie','departamento','descricao','descricao-cod','ref-forn','ncm','marca','estacao','nome-fantasia','nome-fantasia-cod','p-compra','p-venda','observacao'];
 function coletarRascunho(){
   const r = {editandoId, foto: fotoAtual, gradeTipo: gradeForm?.tipo || 'g1',
              linhas: gradeForm ? gradeForm.linhas : [], packs: lojasForm ? lojasForm.packs : []};
@@ -5053,7 +5872,8 @@ function aplicarRascunho(r){
   editandoId = r.editandoId ?? null;
   if (editandoId != null && !state.produtos.some(p => p.id === editandoId)) editandoId = null;
   calcMarkup();
-  atualizarBotaoDescricao();
+  listaDescricoes.atualizarBotao();
+  listaNomeFantasia.atualizarBotao();
   atualizarModoEdicao();
   atualizarTotaisForm();
 }
@@ -5112,7 +5932,11 @@ function salvarProduto(){
     descricaoCod: $('descricao-cod').value.trim(),
     observacao: $('observacao').value.trim(),
     marca: $('marca').value,
+    marcaNome: nomeMarca($('marca').value),
     estacao: $('estacao').value,
+    estacaoNome: nomeEstacao($('estacao').value),
+    nomeFantasia: $('nome-fantasia').value.trim(),
+    nomeFantasiaCod: $('nome-fantasia-cod').value.trim(),
     pCompra: parseMoeda($('p-compra').value),
     pVenda: parseMoeda($('p-venda').value),
     foto: fotoAtual,
@@ -5148,7 +5972,8 @@ function limparFormProduto(){
   $('markup').value = '';
   $('packs-todas').value = '';
   $('erro-ncm').classList.remove('on');
-  atualizarBotaoDescricao();
+  listaDescricoes.atualizarBotao();
+  listaNomeFantasia.atualizarBotao();
   removerFoto();
   gradeForm.setTipo('g1', false);
   gradeForm.limpar();
@@ -5176,6 +6001,9 @@ function editarProduto(id){
   $('ncm').value = p.ncm || '';
   $('marca').value = p.marca || '';
   $('estacao').value = p.estacao || '';
+  $('nome-fantasia').value = p.nomeFantasia || '';
+  $('nome-fantasia-cod').value = p.nomeFantasiaCod || '';
+  listaNomeFantasia.atualizarBotao();
   $('p-compra').value = fmtMoeda(p.pCompra);
   $('p-venda').value = fmtMoeda(p.pVenda);
   $('observacao').value = p.observacao || '';
@@ -5287,8 +6115,9 @@ function renderLista(){
         <div class="detalhe">${esc([p.segmentoNome, p.secaoNome, p.especieNome].filter(Boolean).join(' · ') || '—')}</div>
         <div>
           <span class="tag tag-grade">${esc(GRADES[p.tipoGrade].nome)}</span>
-          ${p.estacao ? `<span class="tag">${esc(p.estacao)}</span>` : ''}
-          ${p.marca ? `<span class="tag">${esc(p.marca)}</span>` : ''}
+          ${p.estacao ? `<span class="tag">${esc(p.estacaoNome || p.estacao)}</span>` : ''}
+          ${p.marca ? `<span class="tag">${esc(p.marcaNome || p.marca)}</span>` : ''}
+          ${p.nomeFantasia ? `<span class="tag">${esc(p.nomeFantasia)}</span>` : ''}
           ${alertas.length ? `<span class="tag tag-alerta">falta ${esc(alertas.join(', '))}</span>` : ''}
         </div>
       </div>
@@ -5373,6 +6202,24 @@ function montarDsProduto(p, corNome, tam){
   return {texto: texto.substring(0, max) || 'PRODUTO', cortou};
 }
 
+/** Classificações do produto (PRDFM308), na ordem de prioridade do CFG.
+    Só entram as que têm código — classificação sem código o TOTVS recusa. */
+function classificacoesDoProduto(p){
+  const de = {
+    segmento:     p.segmento,
+    secao:        p.secao,
+    especie:      p.especie,          // aqui vai o código completo (300410)
+    departamento: p.departamento,
+    marca:        p.marca,
+    estacao:      p.estacao,
+    nomeFantasia: p.nomeFantasiaCod,
+  };
+  return CFG.classifTipos
+    .map(c => ({tipo: c.tipo, cod: csvCampo(c.fixo != null ? c.fixo : de[c.origem]).substring(0,10)}))
+    .filter(c => c.cod)
+    .slice(0, csvMaxClassif);
+}
+
 function exportarCSV(){
   if (!state.produtos.length) { alert('Nenhum produto para exportar.'); return; }
 
@@ -5388,6 +6235,15 @@ function exportarCSV(){
   if (c4) alertas.push(`• ${c4} produto(s) sem descrição padronizada — o nome do produto sai só com o nome da espécie`);
   const c5 = conta(p => p.grade.some(r => !r.corCod && p.tamanhos.some(t => r.tam[t] > 0)));
   if (c5) alertas.push(`• ${c5} produto(s) com cor SEM código do PRDFL025 — o TOTVS vai recusar essas linhas`);
+  const semMarca = conta(p => !p.marca);
+  if (semMarca) alertas.push(`• ${semMarca} produto(s) sem marca — a classificação MARCA não vai`);
+  const semEstacao = conta(p => !p.estacao);
+  if (semEstacao) alertas.push(`• ${semEstacao} produto(s) sem estação — a classificação ESTACAO não vai`);
+  const semNomeFant = conta(p => !p.nomeFantasiaCod);
+  if (semNomeFant) alertas.push(`• ${semNomeFant} produto(s) sem nome fantasia — a classificação NOME FANTASIA não vai`);
+  if (csvMaxClassif < CFG.classifTipos.length) {
+    alertas.push(`• Só ${csvMaxClassif} das ${CFG.classifTipos.length} classificações vão no arquivo (limite do layout) — as demais ficam para o PRDFM308`);
+  }
   const semNivel = CFG.niveisGrupo.filter(n => !n.origem).map(n => n.nome);
   if (semNivel.length) alertas.push(`• Os níveis ${semNivel.join(', ')} saem vazios — o código deles ainda não foi confirmado no TOTVS`);
   const semCodDesc = conta(p => !String(p.descricaoCod || '').trim());
@@ -5426,6 +6282,9 @@ function exportarCSV(){
     'CD_BARRA','IN_CADASTRARCLAS','CD_TIPOCLAS1','CD_CLASSIFICACAO1',
     'NR_CNPJFORNECEDOR','CD_ANTERIOR','CD_COMPOSICAO',
     'CD_CAMPOADIC1','DS_CAMPOADIC1',
+    // classificações 2 em diante (a 1 já está na posição fixa acima)
+    ...Array.from({length: Math.max(0, csvMaxClassif - 1)}, (_, i) =>
+      ['CD_TIPOCLAS' + (i + 2), 'CD_CLASSIFICACAO' + (i + 2)]).flat(),
     // conjuntos extras de valor (custo), na sequência que o layout define
     ...CFG.custos.flatMap((_, i) => {
       const n = i + 2;
@@ -5444,6 +6303,10 @@ function exportarCSV(){
        e por isso saem vazios; ver CFG.niveisGrupo. */
     const niveis = niveisDoGrupo(p);
     const cdGrade = GRADES[p.tipoGrade].cdGrade || '';
+    /* Classificações: a 1ª ocupa as colunas fixas do layout, as demais vão
+       nas colunas extras. Falta de classificação sai como campo vazio. */
+    const clas = classificacoesDoProduto(p);
+    const clasEm = (i) => clas[i] || {tipo: '', cod: ''};
 
     p.grade.forEach(linha => {
       // CD_COR precisa ser o CÓDIGO cadastrado no PRDFL025, nunca o nome da cor.
@@ -5476,14 +6339,17 @@ function exportarCSV(){
           CFG.cdValor,                // 21 CD_VALOR1         PRDFL003
           csvNumero(p.pVenda),        // 22 VL_PRODUTO1
           '',                         // 23 CD_BARRA
-          '',                         // 24 IN_CADASTRARCLAS
-          '',                         // 25 CD_TIPOCLAS1
-          '',                         // 26 CD_CLASSIFICACAO1
+          clas.length ? 'T' : '',     // 24 IN_CADASTRARCLAS
+          clasEm(0).tipo,             // 25 CD_TIPOCLAS1      PRDFL011
+          clasEm(0).cod,              // 26 CD_CLASSIFICACAO1 PRDFL012
           cnpjDigitos(state.pedido.cnpj), // 27 NR_CNPJFORNECEDOR  só dígitos
           '',                         // 28 CD_ANTERIOR       numérico — mantido vazio
           '',                         // 29 CD_COMPOSICAO
           CFG.cdCampoAdic,            // 30 CD_CAMPOADIC1     exige cadastro no PRDFL107
           CFG.cdCampoAdic ? csvCampo(p.refForn).substring(0,40) : '', // 31 DS_CAMPOADIC1
+          // classificações 2 em diante
+          ...Array.from({length: Math.max(0, csvMaxClassif - 1)}, (_, i) =>
+            [clasEm(i + 1).tipo, clasEm(i + 1).cod]).flat(),
           // custo: o mesmo P. Compra em cada código configurado.
           // Sem P. Compra o conjunto inteiro sai vazio — mandar só parte dele
           // faria o TOTVS reclamar de valor obrigatório em branco.
@@ -5575,7 +6441,7 @@ function exportarPDF(){
     doc.setTextColor(255,255,255); doc.setFontSize(8.5); doc.setFont(undefined,'bold');
     const ref = [
       'Ref: ' + (p.refForn || '-'), p.segmentoNome || '-', p.secaoNome || '-',
-      p.especieNome || '-', p.marca || '-', p.estacao || '-',
+      p.especieNome || '-', p.marcaNome || p.marca || '-', p.estacaoNome || p.estacao || '-',
     ].join('  |  ');
     doc.text(doc.splitTextToSize(ref, cW - 4)[0], cX + 2, y + 4.8);
     y += 8;
@@ -5725,14 +6591,6 @@ function atualizarStatusCores(){
   el.parentElement.className = 'aviso ' + (coresOrigem === 'padrão' ? 'aviso-alerta' : 'aviso-ok');
 }
 
-function atualizarStatusDescricoes(){
-  const el = $('descricoes-status');
-  if (el) el.textContent = descricoesOrigem === 'padrão'
-    ? `Lista padrão: ${DESCRICOES.length} descrições, com código de 4 dígitos. Se o TOTVS já tiver outros códigos para o nível DESCRICAO, exporte de lá e atualize aqui.`
-    : `Lista importada: ${DESCRICOES.length} descrições.`;
-  const q = $('qtd-descricoes');
-  if (q) q.textContent = String(DESCRICOES.length);
-}
 
 function init(){
   // lista de cores: importada pelo usuário tem prioridade sobre a que vem no arquivo
@@ -5740,10 +6598,9 @@ function init(){
   try { coresSalvas = localStorage.getItem(CFG.chaveCores); } catch (e) {}
   if (!coresSalvas || !carregarCores(coresSalvas, 'importada do TOTVS')) carregarCores(CORES_PADRAO, 'padrão');
 
-  // lista de descrições padronizadas (nível 5), mesma regra
-  let descSalvas = null;
-  try { descSalvas = localStorage.getItem(CFG.chaveDescricoes); } catch (e) {}
-  if (!descSalvas || !carregarDescricoes(descSalvas, 'importada')) carregarDescricoes(DESCRICOES_PADRAO, 'padrão');
+  // listas pesquisáveis: importada pelo usuário tem prioridade sobre a embutida
+  listaDescricoes.iniciar();
+  listaNomeFantasia.iniciar();
 
   // selects montados a partir das constantes (fonte única de verdade)
   preencherSelect($('segmento'), SEGMENTOS, 'Selecione');
@@ -5803,11 +6660,6 @@ function init(){
     e.target.value = '';
     if (f) importarListaCores(f);
   });
-  $('input-descricoes').addEventListener('change', (e) => {
-    const f = e.target.files && e.target.files[0];
-    e.target.value = '';
-    if (f) importarListaDescricoes(f);
-  });
 
   // seletor de cor
   let buscaTimer = null;
@@ -5817,23 +6669,27 @@ function init(){
   });
   $('modal-cor').addEventListener('click', (e) => { if (e.target === $('modal-cor')) fecharSeletorCor(); });
 
-  // seletor de descrição
-  let buscaDescTimer = null;
-  $('busca-desc').addEventListener('input', () => {
-    clearTimeout(buscaDescTimer);
-    buscaDescTimer = setTimeout(() => filtrarDescricoes($('busca-desc').value), 140);
-  });
-  $('modal-desc').addEventListener('click', (e) => { if (e.target === $('modal-desc')) fecharSeletorDesc(); });
+  // seletores de lista (descrição do nível 5 e nome fantasia)
+  listaDescricoes.ligarEventos();
+  listaNomeFantasia.ligarEventos();
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if ($('modal-cor').classList.contains('aberto')) fecharSeletorCor();
     else if ($('modal-desc').classList.contains('aberto')) fecharSeletorDesc();
+    else if ($('modal-nomefant').classList.contains('aberto')) fecharSeletorNomeFant();
   });
 
   // separador decimal do CSV
   try { csvDecimal = localStorage.getItem('emmanuelle_csv_decimal') === '.' ? '.' : ','; } catch (e) {}
   $('csv-decimal').value = csvDecimal;
+  try { csvMaxClassif = Number(localStorage.getItem('emmanuelle_csv_classif')) === 9 ? 9 : 3; } catch (e) {}
+  $('csv-classif').value = String(csvMaxClassif);
+  $('csv-classif').addEventListener('change', () => {
+    csvMaxClassif = $('csv-classif').value === '9' ? 9 : 3;
+    try { localStorage.setItem('emmanuelle_csv_classif', String(csvMaxClassif)); } catch (e) {}
+    toast(`O arquivo vai levar ${csvMaxClassif} classificações por produto.`);
+  });
   $('csv-decimal').addEventListener('change', () => {
     csvDecimal = $('csv-decimal').value === '.' ? '.' : ',';
     try { localStorage.setItem('emmanuelle_csv_decimal', csvDecimal); } catch (e) {}
@@ -5843,8 +6699,10 @@ function init(){
   // restaura sessão anterior
   const tinha = restaurar();
   atualizarStatusCores();
-  atualizarStatusDescricoes();
-  atualizarBotaoDescricao();
+  listaDescricoes.atualizarStatus();
+  listaDescricoes.atualizarBotao();
+  listaNomeFantasia.atualizarStatus();
+  listaNomeFantasia.atualizarBotao();
   atualizarContador();
   atualizarTotaisForm();
   atualizarModoEdicao();
