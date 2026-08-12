@@ -470,11 +470,11 @@ body{font-family:var(--fonte);background:#F0F2F5;min-height:100vh;color:#111827}
         <div class="field">
           <label for="csv-classif">Classificações por produto (PRDFM308)</label>
           <select id="csv-classif">
-            <option value="3">3 por vez — como diz o manual</option>
-            <option value="9">Todas as 9 — testar se o TOTVS aceita</option>
+            <option value="9">Todas as 9 — testado e aceito pelo TOTVS</option>
+            <option value="3">Só 3 — o que o manual documenta</option>
           </select>
           <div class="hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg>
-            <span>O manual do GERFP096 diz que só cabem 3 classificações por produto. Se o seu TOTVS aceitar mais, troque para "todas" e o restante entra na mesma importação; se ele recusar o arquivo, volte para 3 e complete o resto pelo PRDFM308.</span></div>
+            <span>O manual do GERFP096 documenta só 3 classificações por produto, mas o TOTVS daqui aceitou as 9 — é o padrão. A opção de 3 fica como saída caso uma atualização do TOTVS volte a recusar; nesse caso o resto se completa pelo PRDFM308.</span></div>
         </div>
       </div>
     </section>
@@ -632,11 +632,11 @@ const CFG = {
 
   /* Classificações (PRDFM308). Os tipos vêm do PRDFL011 e os códigos do
      PRDR020. A ordem aqui é a ordem de prioridade: o layout do GERFP096 diz
-     que só cabem 3 conjuntos por produto, então as três primeiras são as que
-     NÃO dá para recuperar de outro lugar — marca, estação e nome fantasia não
-     existem em nenhum nível da máscara. Segmento, seção, espécie e
-     departamento já ficam gravados como níveis do grupo.
-     Se o TOTVS aceitar mais de 3, é só trocar o seletor na tela de exportação. */
+     que só cabem 3 conjuntos por produto, mas o TOTVS daqui aceitou as 9 —
+     mesmo assim a ordem importa: as três primeiras são as que NÃO dá para
+     recuperar de outro lugar (marca, estação e nome fantasia não existem em
+     nenhum nível da máscara), então são elas que sobram se um dia o limite
+     de 3 voltar a valer. */
   classifTipos: [
     {tipo: '105',  origem: 'marca',        nome: 'MARCA'},
     {tipo: '106',  origem: 'estacao',      nome: 'ESTACAO'},
@@ -666,9 +666,10 @@ const CFG = {
    na tela de exportação porque só o teste no TOTVS resolve. */
 let csvDecimal = ',';
 
-/* Quantas classificações vão por produto. O manual diz 3; só o teste no TOTVS
-   diz se a instalação daqui aceita as 9. Ajustável na tela de exportação. */
-let csvMaxClassif = 3;
+/* Quantas classificações vão por produto. O manual documenta 3, mas o TOTVS
+   instalado aqui aceitou as 9 num teste real — por isso o padrão é 9.
+   Ajustável na tela de exportação se algum dia voltar a recusar. */
+let csvMaxClassif = 9;
 
 /* ===================== DADOS DE REFERÊNCIA ===================== */
 const GRADES = {
@@ -6242,7 +6243,7 @@ function exportarCSV(){
   const semNomeFant = conta(p => !p.nomeFantasiaCod);
   if (semNomeFant) alertas.push(`• ${semNomeFant} produto(s) sem nome fantasia — a classificação NOME FANTASIA não vai`);
   if (csvMaxClassif < CFG.classifTipos.length) {
-    alertas.push(`• Só ${csvMaxClassif} das ${CFG.classifTipos.length} classificações vão no arquivo (limite do layout) — as demais ficam para o PRDFM308`);
+    alertas.push(`• Só ${csvMaxClassif} das ${CFG.classifTipos.length} classificações vão no arquivo — as demais ficam para o PRDFM308`);
   }
   const semNivel = CFG.niveisGrupo.filter(n => !n.origem).map(n => n.nome);
   if (semNivel.length) alertas.push(`• Os níveis ${semNivel.join(', ')} saem vazios — o código deles ainda não foi confirmado no TOTVS`);
@@ -6683,7 +6684,7 @@ function init(){
   // separador decimal do CSV
   try { csvDecimal = localStorage.getItem('emmanuelle_csv_decimal') === '.' ? '.' : ','; } catch (e) {}
   $('csv-decimal').value = csvDecimal;
-  try { csvMaxClassif = Number(localStorage.getItem('emmanuelle_csv_classif')) === 9 ? 9 : 3; } catch (e) {}
+  try { csvMaxClassif = Number(localStorage.getItem('emmanuelle_csv_classif')) === 3 ? 3 : 9; } catch (e) {}
   $('csv-classif').value = String(csvMaxClassif);
   $('csv-classif').addEventListener('change', () => {
     csvMaxClassif = $('csv-classif').value === '9' ? 9 : 3;
