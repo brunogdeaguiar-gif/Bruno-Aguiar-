@@ -57,7 +57,9 @@ Tudo que muda com frequência está no topo do `<script>`, em constantes:
 | `GRADES` | grades de tamanho e o respectivo `CD_GRADE` do TOTVS |
 | `SEGMENTOS`, `SECOES`, `ESPECIES` | classificação em cascata |
 | `DEPARTAMENTOS` | departamentos com o código do TOTVS (3 dígitos, `001` a `007`) |
-| `MARCAS`, `ESTACOES` | opções dos selects — ainda **sem** o código do TOTVS |
+| `MARCAS` | marcas próprias com o código da classificação 105 (`001` a `008`) |
+| `ESTACOES` | as 26 estações do TOTVS com o código da classificação 106 |
+| `NOMES_FANTASIA_PADRAO` | nomes fantasia da classificação 107 (código + nome) |
 | `LOJAS` | código e nome das lojas da distribuição |
 | `CORES_PADRAO` | lista de cores do PRDFL025 (código + nome), substituível pela tela |
 | `DESCRICOES_PADRAO` | lista de descrições padronizadas do nível 5 (código de 4 dígitos + texto) |
@@ -319,13 +321,39 @@ parte deles faria o TOTVS reclamar de valor obrigatório em branco. A exportaç�
 O `TP_VALOR` de custo (`C`) foi deduzido da coluna "Tipo" do PRDFM236; se o TOTVS
 recusar, é o primeiro lugar a conferir (`CFG.tpValorCusto`).
 
+### Classificações (PRDFM308)
+
+As classificações são filtros de relatório e, em boa parte, espelham os níveis.
+Os tipos vêm do PRDFL011 e os códigos do PRDR020:
+
+| Tipo | Nome | Origem no sistema |
+|---|---|---|
+| 105 | MARCA - EM | campo Marca (`001` a `008`) |
+| 106 | ESTACAO - EM | campo Estação (as 26 do TOTVS) |
+| 107 | NOME FANTASIA - EM | campo Nome fantasia (607 opções) |
+| 100 | SEGMENTO - EM | nível 1 |
+| 101 | SECAO - EM | nível 2 |
+| 102 | ESPECIE - EM | nível 3 — aqui vai o **código completo** (`300410`), não o curto |
+| 103 | DEPARTAMENTO - EM | nível 4 |
+| 200 | INTEGRACAO DW | fixo `001` BI |
+| 1007 | CLASS EMPRESA | fixo `02` EMMANUELLE |
+
+Ficam de fora, por decisão: 104 DESCRICAO, 108 a 111 e 998.
+
+> **O layout só aceita 3 classificações por produto.** A observação do GERFP096 diz
+> que os campos com o número 1 se repetem *até 3 vezes* (as exceções são
+> `CD_GRUPO1`, que vai a 10, e os valores, que vão a 12). Por isso a ordem do
+> `CFG.classifTipos` é ordem de **prioridade**: marca, estação e nome fantasia vêm
+> primeiro porque não existem em nenhum nível da máscara — o resto se recupera do
+> grupo. Há um seletor em *Pedido → Importação no TOTVS* para tentar mandar as 9;
+> se o TOTVS recusar o arquivo, volte para 3 e complete o resto pelo PRDFM308.
+
 ### Ainda não implementado
 
-Apurado conferindo um produto importado no TOTVS — o cadastro entra, mas incompleto:
-
-| Falta | Campos do layout | O que falta descobrir |
-|---|---|---|
-| Classificações (PRDFM308: tipos 100 SEGMENTO, 101 SECAO, 102 ESPECIE, 103 DEPARTAMENTO, 105 MARCA, 106 ESTACAO) | `IN_CADASTRARCLAS`, `CD_TIPOCLAS1..`, `CD_CLASSIFICACAO1..` | os códigos de classificação do PRDFL012 para cada marca, estação, departamento etc. |
+| Falta | Onde |
+|---|---|
+| Produto Padrão do grupo | não existe coluna no layout; hoje é o PRDFM009 |
+| Tamanho `XGG` da grade 8 | no TOTVS a grade 8 (TOP) termina em `XG` — por decisão, mantido como está |
 
 ### O que o CSV não cobre
 
