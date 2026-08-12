@@ -340,13 +340,16 @@ Os tipos vêm do PRDFL011 e os códigos do PRDR020:
 
 Ficam de fora, por decisão: 104 DESCRICAO, 108 a 111 e 998.
 
-> **O layout só aceita 3 classificações por produto.** A observação do GERFP096 diz
-> que os campos com o número 1 se repetem *até 3 vezes* (as exceções são
-> `CD_GRUPO1`, que vai a 10, e os valores, que vão a 12). Por isso a ordem do
-> `CFG.classifTipos` é ordem de **prioridade**: marca, estação e nome fantasia vêm
+> **O manual documenta 3 classificações por produto, mas o TOTVS daqui aceita as 9.**
+> A observação do GERFP096 diz que os campos com o número 1 se repetem *até 3 vezes*
+> (as exceções documentadas são `CD_GRUPO1`, que vai a 10, e os valores, que vão a
+> 12). Um teste real de importação passou com as 9, então é esse o padrão.
+>
+> O seletor em *Pedido → Importação no TOTVS* permite voltar para 3 se uma
+> atualização do TOTVS reintroduzir o limite. Por isso a ordem do `CFG.classifTipos`
+> continua sendo ordem de **prioridade**: marca, estação e nome fantasia vêm
 > primeiro porque não existem em nenhum nível da máscara — o resto se recupera do
-> grupo. Há um seletor em *Pedido → Importação no TOTVS* para tentar mandar as 9;
-> se o TOTVS recusar o arquivo, volte para 3 e complete o resto pelo PRDFM308.
+> grupo, ou se completa pelo PRDFM308.
 
 ### Ainda não implementado
 
