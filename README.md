@@ -66,6 +66,13 @@ Tudo que muda com frequência está no topo do `<script>`, em constantes:
 
 Depois de alterar o `index.html` e enviar para a `main`, o site se atualiza sozinho.
 
+**Antes de alterar, rode os testes** (`testes/README.md`): são 256 verificações que
+abrem a página de verdade, geram o CSV e conferem campo por campo. Vários desses
+testes existem porque o erro já chegou ao TOTVS uma vez.
+
+**O porquê de cada decisão** está em [`docs/DECISOES.md`](docs/DECISOES.md) — o que
+foi testado, o que falhou na importação e a razão de cada escolha.
+
 Para incluir uma loja nova, basta acrescentar uma linha em `LOJAS` — a tela, os
 totais, o PDF e o backup se ajustam sozinhos.
 
