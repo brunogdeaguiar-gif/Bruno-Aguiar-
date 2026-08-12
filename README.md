@@ -277,8 +277,30 @@ O botão *Digitar descrição fora da lista* existe para a descrição que ainda
 padronizada. Ele exige o código, porque sem código o TOTVS pula o nível. A exportação
 avisa quantos produtos usaram descrição fora da lista.
 
-O `DS_PRODUTO` acompanha a máscara: sai como **espécie + descrição** (`MACACAO CURTO
-BOLSO E CAPUZ BICOLOR`), já que a descrição sozinha não identifica o produto.
+### Descrição do produto (DS_PRODUTO)
+
+Os produtos cadastrados à mão no PRDFM236 seguem um padrão:
+
+```
+SECAO + ESPECIE + DEPARTAMENTO + DESCRICAO + COR + TAMANHO
+CAMISETA MGA CURTA JOVEM BASICA CAFE P
+```
+
+O segmento fica de fora — ele aparece só na *discriminação* do grupo, que o TOTVS
+monta sozinho a partir dos níveis.
+
+O CSV agora monta `DS_PRODUTO` nessa mesma ordem, e como cor e tamanho mudam a cada
+SKU, o texto é remontado linha a linha. A ordem fica em `CFG.dsProdutoPartes`.
+
+O campo aceita 60 caracteres. Quando o texto passa disso, o sistema encurta as partes
+marcadas com `encurtavel` (hoje só a descrição) e **nunca** a cor e o tamanho — são
+eles que separam um SKU do outro. A exportação avisa quantos produtos foram encurtados.
+
+> **Os nomes dos níveis podem divergir.** O TOTVS usa o nome que está cadastrado nele
+> (`MGA CURTA`), e o sistema usa o da nossa lista (`MANGA CURTA`). Para o texto sair
+> idêntico ao dos produtos antigos, ou se acerta a lista de níveis do sistema, ou se
+> roda o **PRDFP018** depois de importar — é o componente que recalcula a descrição de
+> grupos e produtos usando as descrições dos níveis do próprio TOTVS.
 
 ### Valores (PRDFL003)
 

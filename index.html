@@ -559,6 +559,23 @@ const CFG = {
     {nome: 'REFERENCIA',   origem: 'refForn',   aberto: true},
   ],
 
+  /* DS_PRODUTO — padrão da Emmanuelle, conferido nos produtos cadastrados à
+     mão no PRDFM236: SECAO + ESPECIE + DEPARTAMENTO + DESCRICAO + COR + TAMANHO
+     ("CAMISETA MGA CURTA JOVEM BASICA CAFE P"). O segmento fica de fora — ele
+     aparece só na discriminação do grupo.
+     'encurtavel' marca as partes que podem ser cortadas quando o texto passa
+     do limite; cor e tamanho nunca são, porque são eles que separam um SKU
+     do outro. */
+  dsProdutoPartes: [
+    {origem: 'secao'},
+    {origem: 'especie'},
+    {origem: 'departamento'},
+    {origem: 'descricao', encurtavel: true},
+    {origem: 'cor'},
+    {origem: 'tamanho'},
+  ],
+  dsProdutoMax: 60,    // limite do campo no layout
+
   /* Valores do produto (PRDFL003). O layout aceita até 12 conjuntos
      CD_EMPVALOR/TP_VALOR/CD_VALOR/VL_PRODUTO. Aqui vão três:
        1 = Preço  / VENDA           -> P. Venda
@@ -5326,6 +5343,36 @@ function niveisDoGrupo(p){
   }));
 }
 
+/** DS_PRODUTO montado no padrão do PRDFM236 — ver CFG.dsProdutoPartes.
+    Depende da cor e do tamanho, então é remontado para cada linha do CSV. */
+function montarDsProduto(p, corNome, tam){
+  const de = {
+    segmento:     p.segmentoNome,
+    secao:        p.secaoNome,
+    especie:      p.especieNome,
+    departamento: nomeDepartamento(p.departamento),
+    descricao:    p.descricao,
+    cor:          corNome,
+    tamanho:      tam,
+  };
+  const partes = CFG.dsProdutoPartes
+    .map(n => ({txt: csvCampo(de[n.origem]).trim(), encurtavel: !!n.encurtavel}))
+    .filter(x => x.txt);
+  const max = CFG.dsProdutoMax;
+  const junta = () => partes.map(x => x.txt).filter(Boolean).join(' ');
+
+  let texto = junta();
+  const cortou = texto.length > max;
+  // encurta de trás para frente só o que pode ser encurtado
+  for (let i = partes.length - 1; i >= 0 && texto.length > max; i--) {
+    if (!partes[i].encurtavel) continue;
+    const sobra = texto.length - max;
+    partes[i].txt = partes[i].txt.slice(0, Math.max(0, partes[i].txt.length - sobra)).trim();
+    texto = junta();
+  }
+  return {texto: texto.substring(0, max) || 'PRODUTO', cortou};
+}
+
 function exportarCSV(){
   if (!state.produtos.length) { alert('Nenhum produto para exportar.'); return; }
 
@@ -5349,6 +5396,9 @@ function exportarCSV(){
   if (foraLista) alertas.push(`• ${foraLista} produto(s) com descrição fora da lista padronizada — confira o código no TOTVS antes de importar`);
   const descLonga = conta(p => String(p.descricao || '').length > 40);
   if (descLonga) alertas.push(`• ${descLonga} produto(s) com descrição acima de 40 caracteres — o texto do nível 5 sai cortado`);
+  const dsCortado = conta(p => p.grade.some(r => p.tamanhos.some(t =>
+    r.tam[t] > 0 && montarDsProduto(p, r.corNome, t).cortou)));
+  if (dsCortado) alertas.push(`• ${dsCortado} produto(s) passam de ${CFG.dsProdutoMax} caracteres na descrição do produto — ela sai encurtada (cor e tamanho são preservados)`);
   const refLonga = conta(p => String(p.refForn || '').trim().length > 10);
   if (refLonga) alertas.push(`• ${refLonga} produto(s) com ref. do fornecedor acima de 10 caracteres — o código do nível REFERENCIA sai cortado`);
   const semRef = conta(p => !String(p.refForn || '').trim());
@@ -5393,10 +5443,6 @@ function exportarCSV(){
        Os níveis 4 a 6 dependem de códigos ainda não confirmados no TOTVS
        e por isso saem vazios; ver CFG.niveisGrupo. */
     const niveis = niveisDoGrupo(p);
-    /* DS_PRODUTO acompanha a máscara: espécie + descrição padronizada.
-       Sozinha a descrição ("1 BOTAO") não identifica o produto. */
-    const dsProduto = csvCampo([p.especieNome, p.descricao].filter(Boolean).join(' ')
-                               || p.secaoNome || 'PRODUTO').substring(0,60);
     const cdGrade = GRADES[p.tipoGrade].cdGrade || '';
 
     p.grade.forEach(linha => {
@@ -5404,6 +5450,8 @@ function exportarCSV(){
       const cdCor = csvCampo(linha.corCod).substring(0,10);
       p.tamanhos.forEach(tam => {
         if (!(linha.tam[tam] > 0)) return;   // só SKUs efetivamente pedidos
+        // DS_PRODUTO muda por SKU: termina em cor + tamanho
+        const dsProduto = montarDsProduto(p, linha.corNome, tam).texto;
         linhas.push([
           CFG.cdMascara,              //  1 CD_MASCARA        máscara do PRDFM018
           niveis[0].cod,              //  2 CD_GRUPO1         segmento
