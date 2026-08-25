@@ -154,17 +154,6 @@ ficaram **sem estação** — de propósito. Não havia como saber se `VERÃO 26
 
 ---
 
-## Decisões que foram tomadas e depois revertidas
-
-- **Níveis 5 e 6 aceitando letras** (PR #15) — pedido e revertido no mesmo dia
-  (PR #16), a pedido. O nível 5 usa sequencial numérico.
-- **`CD_COMPOSICAO` inválido** — passei um bom tempo analisando as colunas do SQL e
-  concluí, com confiança, que era a tabela de Produto. Estava errado: a importação
-  tinha sido feita na aba *Pessoa*. Vale de lembrete: erro do importador aponta a
-  aba antes de apontar a coluna.
-
----
-
 ## 11. O cabeçalho do PDF saía cortado
 
 **Como descobrimos:** o PDF chegou ao fornecedor com a linha de faturamento
@@ -183,6 +172,17 @@ antes — é o que sobra dele que limita o texto da esquerda. A seta virou `a`.
 
 O `testes/teste-pdf.js` ganhou medição de largura: qualquer texto que passe da
 margem agora quebra o teste, com o valor em milímetros.
+
+---
+
+## Decisões que foram tomadas e depois revertidas
+
+- **Níveis 5 e 6 aceitando letras** (PR #15) — pedido e revertido no mesmo dia
+  (PR #16), a pedido. O nível 5 usa sequencial numérico.
+- **`CD_COMPOSICAO` inválido** — passei um bom tempo analisando as colunas do SQL e
+  concluí, com confiança, que era a tabela de Produto. Estava errado: a importação
+  tinha sido feita na aba *Pessoa*. Vale de lembrete: erro do importador aponta a
+  aba antes de apontar a coluna.
 
 ---
 
