@@ -221,6 +221,13 @@ Ficam na constante `CFG`, no topo do `<script>`:
 | `TP_ITEMSPED` | vazio (opcional) | — `00` = mercadoria para revenda |
 | `CD_CAMPOADIC1` | vazio | PRDFL107 — se preenchido, leva a ref. do fornecedor em `DS_CAMPOADIC1` |
 
+### Nunca salvar o CSV pelo Excel
+
+Abrir para conferir tudo bem; salvar, não. O Excel grava o CNPJ em notação
+científica (`1,25546E+13`) e apaga o zero à esquerda dos códigos — `001` vira `1`,
+`019` vira `19`, `0207` vira `207`. Para conferir o conteúdo, use o Bloco de Notas.
+Há um aviso fixo ao lado do botão de exportar.
+
 ### Separador decimal
 
 O layout não diz se `VL_PRODUTO1` usa vírgula ou ponto. Há um seletor em
