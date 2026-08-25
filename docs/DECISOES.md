@@ -154,6 +154,27 @@ ficaram **sem estação** — de propósito. Não havia como saber se `VERÃO 26
 
 ---
 
+## 11. O cabeçalho do PDF saía cortado
+
+**Como descobrimos:** o PDF chegou ao fornecedor com a linha de faturamento
+atravessando a borda direita da página.
+
+**Duas causas na mesma linha:**
+
+1. O texto era desenhado a partir de `x = 210mm` e crescia para a direita. A página
+   A4 deitada tem 297mm — a linha completa passava dos 320mm.
+2. A seta `→` não existe na fonte embutida do jsPDF (WinAnsi). Um caractere fora
+   dessa tabela **corrompe a linha inteira** no leitor de PDF, o que explica o
+   espaçamento estranho entre as letras.
+
+**Decisão:** o bloco da direita é alinhado pela borda (`align:'right'`) e medido
+antes — é o que sobra dele que limita o texto da esquerda. A seta virou `a`.
+
+O `testes/teste-pdf.js` ganhou medição de largura: qualquer texto que passe da
+margem agora quebra o teste, com o valor em milímetros.
+
+---
+
 ## Decisões que foram tomadas e depois revertidas
 
 - **Níveis 5 e 6 aceitando letras** (PR #15) — pedido e revertido no mesmo dia
@@ -183,5 +204,5 @@ ficaram **sem estação** — de propósito. Não havia como saber se `VERÃO 26
   que resolveu, não só o que mudou.
 - **A discussão de cada alteração**: os pull requests #1 a #20 no GitHub.
 - **Como o sistema funciona hoje**: `README.md`.
-- **A garantia de que nada quebrou**: `testes/` — 256 verificações, várias delas
+- **A garantia de que nada quebrou**: `testes/` — 260 verificações, várias delas
   criadas depois de um erro chegar ao TOTVS.

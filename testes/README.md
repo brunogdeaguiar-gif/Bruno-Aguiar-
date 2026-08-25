@@ -2,7 +2,7 @@
 
 São 9 suítes que exercitam o `index.html` de verdade — abrem a página num navegador
 sem janela, preenchem o formulário, geram o CSV e conferem campo por campo. Juntas
-são **256 verificações**. Não há framework, npm nem servidor: só Python 3 e Chromium.
+são **260 verificações**. Não há framework, npm nem servidor: só Python 3 e Chromium.
 
 ## Rodar
 
@@ -22,7 +22,7 @@ Se o Chromium não estiver no caminho esperado, aponte com `CHROMIUM=/caminho/do
 | Arquivo | Cobre |
 |---|---|
 | `teste.js` | fluxo completo: pedido, cascata de classificação, grade, lojas, salvar, editar, duplicar, remover, CSV, backup, XSS, persistência |
-| `teste-pdf.js` | geração do PDF com produtos pesados (12 cores, textos longos, com e sem foto), com um jsPDF simulado — pega quebra de página e texto fora da margem |
+| `teste-pdf.js` | geração do PDF com produtos pesados (12 cores, textos longos, com e sem foto), com um jsPDF simulado — pega quebra de página, texto fora da margem e caractere que a fonte embutida não tem |
 | `t-cor.js` | lista de cores do PRDFL025, seletor, código vs. nome, troca de lista, migração |
 | `t-cnpj.js` | validação e formatação do CNPJ, `NR_CNPJFORNECEDOR` |
 | `t-custo.js` | os conjuntos de valor (venda + os dois custos) e a hierarquia revisada |

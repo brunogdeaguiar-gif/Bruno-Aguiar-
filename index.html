@@ -6389,20 +6389,43 @@ function exportarPDF(){
   const fornecedor = state.pedido.fornecedor || 'Fornecedor';
   const emissao = new Date().toLocaleDateString('pt-BR');
 
+  /* O cabeçalho tem dois blocos na mesma faixa: identificação à esquerda e
+     datas do pedido à direita. O bloco da direita é alinhado pela borda e
+     medido primeiro — é o que sobra dele que limita o da esquerda. Sem isso o
+     texto da direita saía da página (ver testes/teste-pdf.js).
+     Só entram caracteres do padrão latino: a fonte embutida do jsPDF não tem
+     seta (→) e o texto inteiro sai corrompido. */
   function cabecalho(){
+    const DIR = LARG - MARG;
     doc.setFillColor(31,56,100); doc.rect(0, 0, LARG, 22, 'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(14); doc.setFont(undefined,'bold');
-    doc.text('LOJAS EMMANUELLE', MARG, 12);
-    doc.setFontSize(9); doc.setFont(undefined,'normal');
-    doc.text('Pedido de Compras — Fornecedor: ' + fornecedor +
-             (state.pedido.cnpj ? '   CNPJ: ' + fmtCnpj(state.pedido.cnpj) : ''), MARG, 19);
-    doc.text('Emissão: ' + emissao, 210, 12);
-    doc.setFontSize(8);
-    const fat = `Faturamento: ${fmtData(state.pedido.dtIni) || '-'} → ${fmtData(state.pedido.dtFim) || '-'}`;
+    doc.setTextColor(255,255,255);
+
+    const emiss = 'Emissão: ' + emissao;
+    const fat = `Faturamento: ${fmtData(state.pedido.dtIni) || '-'} a ${fmtData(state.pedido.dtFim) || '-'}`;
     const extra = [state.pedido.prazo ? `Prazo: ${state.pedido.prazo}d` : '',
                    state.pedido.frete ? `Frete: ${state.pedido.frete}` : '',
                    state.pedido.comissao ? `Com.: ${state.pedido.comissao}%` : ''].filter(Boolean).join('  |  ');
-    doc.text(fat + (extra ? '  |  ' + extra : ''), 210, 19);
+    const linhaDir = fat + (extra ? '  |  ' + extra : '');
+
+    doc.setFont(undefined,'normal'); doc.setFontSize(9);
+    const wEmiss = doc.getTextWidth(emiss);
+    // encolhe a linha de datas até caber na metade direita da faixa
+    let fsDir = 8;
+    doc.setFontSize(fsDir);
+    while (fsDir > 6 && doc.getTextWidth(linhaDir) > LARG / 2) doc.setFontSize(--fsDir);
+    const wDir = Math.max(wEmiss, doc.getTextWidth(linhaDir));
+
+    doc.setFontSize(14); doc.setFont(undefined,'bold');
+    doc.text('LOJAS EMMANUELLE', MARG, 12);
+    doc.setFontSize(9); doc.setFont(undefined,'normal');
+    const ident = 'Pedido de Compras — Fornecedor: ' + fornecedor +
+                  (state.pedido.cnpj ? '   CNPJ: ' + fmtCnpj(state.pedido.cnpj) : '');
+    const largIdent = Math.max(40, DIR - wDir - 8 - MARG);
+    doc.text(doc.splitTextToSize(ident, largIdent)[0], MARG, 19);
+
+    doc.text(emiss, DIR, 12, {align:'right'});
+    doc.setFontSize(fsDir);
+    doc.text(doc.splitTextToSize(linhaDir, LARG / 2)[0], DIR, 19, {align:'right'});
     return 28;
   }
   function novaPagina(){ doc.addPage(); return cabecalho(); }
