@@ -2,17 +2,31 @@
    (o CDN real está bloqueado neste ambiente de build). */
 (function(){
   const chamadas = [];
+  const textos = [];
   function Doc(){
     this._page = 1; this._pages = 1;
     this.lastAutoTable = {finalY: 0};
     this.internal = {pageSize:{getWidth:()=>297,getHeight:()=>210}};
   }
   const reg = (nome) => function(){ chamadas.push(nome + '(' + [].slice.call(arguments,0,4).map(a=>typeof a === 'string' && a.length>25 ? a.slice(0,25)+'…' : a).join(',') + ')'); };
-  ['setFillColor','setDrawColor','setTextColor','setFontSize','setFont','rect','line','save'].forEach(m => Doc.prototype[m] = reg(m));
+  ['setFillColor','setDrawColor','setTextColor','setFont','rect','line','save'].forEach(m => Doc.prototype[m] = reg(m));
+  Doc.prototype.setFontSize = function(n){ this._fs = n; chamadas.push('setFontSize(' + n + ')'); };
+  /* Largura estimada em mm: Helvetica tem ~0,5em de largura média por caractere.
+     Serve para pegar texto que passa da margem — foi assim que o cabeçalho
+     do pedido saía cortado à direita. */
+  Doc.prototype.getTextWidth = function(t){ return String(t).length * (this._fs || 10) * 0.5 * 25.4 / 72; };
   Doc.prototype.text = function(txt, x, y, opt){
     if (txt == null) throw new Error('text() recebeu ' + txt);
     if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error('text() com coordenada inválida: x=' + x + ' y=' + y);
     if (y > 210 || y < 0) throw new Error('text() fora da página: y=' + y);
+    const linhas = Array.isArray(txt) ? txt : [String(txt)];
+    const larg = linhas.reduce((m, l) => Math.max(m, this.getTextWidth(l)), 0);
+    const align = opt && opt.align;
+    const esq = align === 'right' ? x - larg : align === 'center' ? x - larg / 2 : x;
+    const dirEdge = esq + larg;
+    if (dirEdge > 288.5) throw new Error('texto passa da margem direita (' + dirEdge.toFixed(1) + 'mm): ' + String(linhas[0]).slice(0,50));
+    if (esq < 1.5) throw new Error('texto passa da margem esquerda (' + esq.toFixed(1) + 'mm): ' + String(linhas[0]).slice(0,50));
+    textos.push(linhas.join(' '));
     chamadas.push('text@p' + this._page + ':y' + y.toFixed(1));
   };
   Doc.prototype.addImage = function(d, f, x, y, w, h){
@@ -44,6 +58,7 @@
   Doc.prototype.setPage = function(n){ this._page = n; };
   window.jspdf = {jsPDF: Doc};
   window.__pdfChamadas = chamadas;
+  window.__pdfTextos = textos;
 })();
 
 window.addEventListener('load', () => setTimeout(() => {
@@ -89,6 +104,31 @@ window.addEventListener('load', () => setTimeout(() => {
     ok('houve quebra de página', ch.some(c => c.startsWith('addPage')), ch.filter(c=>c.startsWith('addPage')).length + ' páginas extras');
     ok('tabelas desenhadas', ch.filter(c => c.startsWith('tabela')).length === 10, ch.filter(c => c.startsWith('tabela')).length);
     ok('imagens desenhadas', ch.filter(c => c.startsWith('img')).length === 3, ch.filter(c => c.startsWith('img')).length);
+
+    // ---- cabeçalho: é onde o texto saía da página
+    const cabecalhoOk = (pedido, rotulo) => {
+      window.__pdfChamadas.length = 0;
+      state.pedido = pedido;
+      state.produtos = [mkProduto(1, 2, false, false)];
+      let e = '';
+      try { exportarPDF(); } catch (err) { e = err.message; }
+      ok('cabeçalho cabe na página: ' + rotulo, e === '', e);
+    };
+    cabecalhoOk({dtIni:'2026-03-01', dtFim:'2026-04-30', prazo:'120', comissao:'12,5',
+                 fornecedor:'Malharia e Confecções São José do Rio Preto Ltda ME',
+                 cnpj:'11.222.333/0001-81', frete:'CIF', materiaPrima:'MALHA'},
+                'fornecedor longo + todos os campos');
+    cabecalhoOk({dtIni:'', dtFim:'', prazo:'', comissao:'', fornecedor:'', cnpj:'', frete:'', materiaPrima:''},
+                'pedido vazio');
+    cabecalhoOk({dtIni:'2026-03-01', dtFim:'2026-04-30', prazo:'30', comissao:'',
+                 fornecedor:'A'.repeat(120), cnpj:'11.222.333/0001-81', frete:'FOB', materiaPrima:''},
+                'nome de fornecedor absurdo');
+
+    /* A fonte embutida do jsPDF é WinAnsi: um caractere fora dela (a seta →,
+       por exemplo) corrompe a linha inteira no leitor de PDF. */
+    const foraDoWinAnsi = /[^\u0000-\u00FF\u20AC\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\u017D\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u017E\u0178]/;
+    const ruins = window.__pdfTextos.filter(t => foraDoWinAnsi.test(t));
+    ok('todo texto do PDF cabe na fonte embutida', ruins.length === 0, ruins.slice(0,2).join(' / '));
 
     // produto sem loja e sem cor
     window.__pdfChamadas.length = 0;
