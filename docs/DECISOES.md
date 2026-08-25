@@ -175,6 +175,29 @@ margem agora quebra o teste, com o valor em milímetros.
 
 ---
 
+## 12. O Excel estraga o CSV se ele for salvo
+
+**Como descobrimos:** ao abrir o arquivo exportado no Excel, a coluna
+`NR_CNPJFORNECEDOR` aparece como `1,25546E+13`.
+
+**O que é:** só exibição. O arquivo tem `12554601000125` em texto puro — o
+`testes/t-cnpj.js` confere isso a cada execução. O Excel é que trata 14 dígitos
+como número e mostra em notação científica.
+
+**O risco real** é salvar. Se alguém abrir e gravar pelo Excel, ele escreve a
+notação científica no arquivo **e** apaga o zero à esquerda de todos os códigos:
+`001` vira `1`, `019` vira `19`, `0207` vira `207`. Departamento, marca, estação e
+descrição entram errados de uma vez.
+
+**Decisão:** não mexer no CSV — qualquer truque que force o Excel a tratar como
+texto (`="..."`, aspas, tabulação inicial) quebraria a importação no TOTVS. Em vez
+disso, um aviso fixo ao lado do botão de exportar, e a orientação de conferir pelo
+Bloco de Notas.
+
+Mesmo motivo do item 5: **planilha não é fonte confiável de código.**
+
+---
+
 ## Decisões que foram tomadas e depois revertidas
 
 - **Níveis 5 e 6 aceitando letras** (PR #15) — pedido e revertido no mesmo dia

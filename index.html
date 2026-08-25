@@ -481,6 +481,10 @@ body{font-family:var(--fonte);background:#F0F2F5;min-height:100vh;color:#111827}
 
     <div class="actions-box">
       <button type="button" class="btn btn-csv" onclick="exportarCSV()"><svg class="ic" aria-hidden="true"><use href="#i-csv"/></svg> Exportar CSV para TOTVS</button>
+      <div class="aviso aviso-alerta" style="margin:-4px 0 12px">
+        <svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg>
+        <div>Importe o CSV direto no TOTVS. Se abrir no Excel, <b>não salve</b>: o Excel troca o CNPJ por 1,25546E+13 e come o zero da frente dos códigos (001, 019, 0207). Para só conferir, abra no Bloco de Notas.</div>
+      </div>
       <button type="button" class="btn btn-pdf" onclick="exportarPDF()"><svg class="ic" aria-hidden="true"><use href="#i-pdf"/></svg> Gerar PDF para fornecedor</button>
       <button type="button" class="btn-outline" onclick="exportarBackup()"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> Baixar backup (.json)</button>
       <button type="button" class="btn-outline" onclick="document.getElementById('input-backup').click()"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Restaurar backup (.json)</button>
